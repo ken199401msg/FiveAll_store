@@ -209,3 +209,5 @@ body.veil #app{filter:blur(28px);opacity:.15}
 .main table td.rbad,.main table td.rbad.sm{background:#fdd !important;color:#c0352b;font-weight:700}
 .main table td.sm{font-size:12px;color:#667}
 .rissues{margin:6px 0;padding-left:20px;color:#c0352b;font-weight:600}
+details.recon{border-color:#12507a;border-width:2px}
+details.recon>summary{font-weight:700;color:#12507a;font-size:17px}
