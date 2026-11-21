@@ -5,6 +5,8 @@
   const app = document.getElementById('app');
   const ROLE = { admin: '超級管理員', manager: '店長', accountant: '帳務人員', pending: '待開通' };
   const state = { profile: null, stores: [] };
+  // 提供給各頁面模組使用
+  const APP = window.APP = { sb, h, state, mount, shell, fmtTime, showMsg, logAction, ROLE, pages: {} };
 
   /* ---------- 小工具（一律用 textContent，避免 XSS） ---------- */
   function h(tag, attrs, ...kids) {
@@ -15,7 +17,7 @@
       else if (v === true) el.setAttribute(k, '');
       else if (v !== false && v != null) el.setAttribute(k, v);
     }
-    for (const kid of kids.flat()) {
+    for (const kid of kids.flat(Infinity)) {
       if (kid == null || kid === false) continue;
       el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
     }
@@ -100,7 +102,7 @@
   /* ---------- 版型 ---------- */
   function shell(active, ...content) {
     const p = state.profile;
-    const items = [['home', '首頁']];
+    const items = [['home', '首頁'], ['daily', '日帳明細'], ['monthly', '月結表']];
     if (p.role === 'admin') items.push(['users', '帳號管理'], ['logs', '操作紀錄']);
     return [
       h('div', { class: 'topbar' },
@@ -133,17 +135,18 @@
       ? (state.stores.length ? '授權店別：' + state.stores.join('、') : '尚未授權任何店別，請聯絡管理員。')
       : '可查看全部店別';
     const pages = [
-      ['日帳明細', '每日各師傅業績、來客、指定與記事'],
-      ['月結表', '師傅月業績、工作日、指定率'],
-      ['分析', '店舖與個人績效分析'],
-      ['排班表', '每月排班與固定週休'],
-      ['行事曆', '週曆與休假，可輸出 PDF']
+      ['daily', '日帳明細', '每日各師傅業績、來客、指定與記事'],
+      ['monthly', '月結表', '師傅月業績、工作日、指定率'],
+      [null, '分析', '店舖與個人績效分析'],
+      [null, '排班表', '每月排班與固定週休'],
+      [null, '行事曆', '週曆與休假，可輸出 PDF']
     ];
     mount(...shell('home',
       h('h2', {}, '歡迎，' + p.display_name),
       h('p', { class: 'meta' }, scope),
-      h('div', { class: 'grid' }, pages.map(([t, d]) =>
-        h('div', { class: 'tile off' }, h('h3', {}, t, h('span', { class: 'badge' }, '開發中')), h('p', {}, d))))));
+      h('div', { class: 'grid' }, pages.map(([k, t, d]) => k
+        ? h('a', { class: 'tile', href: '#' + k }, h('h3', {}, t), h('p', {}, d))
+        : h('div', { class: 'tile off' }, h('h3', {}, t, h('span', { class: 'badge' }, '開發中')), h('p', {}, d))))));
   }
 
   /* ---------- 帳號管理（僅超級管理員） ---------- */
@@ -232,6 +235,10 @@
       logAction('view_page', { page });
       return page === 'users' ? renderUsers() : renderLogs('auth');
     }
+    if (APP.pages[page]) {
+      logAction('view_page', { page });
+      return APP.pages[page]();
+    }
     logAction('view_page', { page: 'home' });
     renderHome();
   }
@@ -240,5 +247,5 @@
   sb.auth.onAuthStateChange((event) => {
     if (event === 'SIGNED_OUT') { state.profile = null; renderAuth('login'); }
   });
-  route();
+  document.addEventListener('DOMContentLoaded', route);
 })();
