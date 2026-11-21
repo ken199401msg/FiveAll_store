@@ -185,7 +185,7 @@
       const { days, nameOf } = results;
       const bad = days.filter((d) => d.issues.length);
       const okDays = days.filter((d) => d.date && !d.issues.length && !results.marked.has(d.date));
-      const canMark = APP.canEdit();
+      const canMark = ['admin', 'manager', 'accountant'].includes(APP.state.profile.role); // 一般帳務人員也可標記已對帳
       out.replaceChildren(
         h('div', { class: 'msg ' + (bad.length ? 'err' : 'ok') }, bad.length ? `共 ${days.length} 天，${bad.length} 天有異常：${bad.map((d) => d.label).join('、')}` : `共 ${days.length} 天，全部正確 ✓`),
         canMark && okDays.length ? h('div', { class: 'act' }, h('button', { class: 'primary', onclick: () => mark(okDays.map((d) => d.date), true) }, `全部正確的 ${okDays.length} 天標記為「已對帳」`)) : null,
