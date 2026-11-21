@@ -3,7 +3,7 @@
   'use strict';
   const { sb, h, state, mount, shell, showMsg, fmtTime } = APP;
   const L = LIB;
-  const sel = L.initialSel();
+  let sel = null; // 登入後第一次開啟頁面時才建立
   let seq = 0;
 
   APP.pages.daily = render;
@@ -18,6 +18,7 @@
 
   async function render() {
     const my = ++seq;
+    if (!sel || (sel.store && !L.myStores().includes(sel.store))) sel = L.initialSel();
     if (!sel.store) {
       mount(...shell('daily', h('h2', {}, '日帳明細'), h('div', { class: 'msg info' }, '尚未授權任何店別，請聯絡管理員。')));
       return;

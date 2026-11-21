@@ -3,13 +3,14 @@
   'use strict';
   const { h, mount, shell } = APP;
   const L = LIB;
-  const sel = L.initialSel();
+  let sel = null; // 登入後第一次開啟頁面時才建立
   let seq = 0;
 
   APP.pages.monthly = render;
 
   async function render() {
     const my = ++seq;
+    if (!sel || (sel.store && !L.myStores().includes(sel.store))) sel = L.initialSel();
     if (!sel.store) {
       mount(...shell('monthly', h('h2', {}, '月結表'), h('div', { class: 'msg info' }, '尚未授權任何店別，請聯絡管理員。')));
       return;
