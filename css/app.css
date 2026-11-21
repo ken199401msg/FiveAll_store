@@ -174,3 +174,5 @@ body.veil #app{filter:blur(28px);opacity:.15}
 .sheet .calt .holt{font-size:12px;font-weight:700;color:#c0352b;margin-top:2px}
 .exporting .staffsum{font-size:20px}
 .exporting .calt .holt{font-size:16px}
+.main{zoom:var(--fs,1)}
+.topbar .fsb{font-weight:700;padding:6px 9px}

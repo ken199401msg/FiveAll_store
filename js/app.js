@@ -140,6 +140,12 @@
       }, () => { el.textContent = '資料更新時間：—'; });
     return el;
   }
+  /* 字體大小（每台裝置各自記住）：套用到內容區 */
+  let fs = 1;
+  try { fs = Number(localStorage.getItem('fs')) || 1; } catch (e) { fs = 1; }
+  const applyFs = () => { document.documentElement.style.setProperty('--fs', String(fs)); try { localStorage.setItem('fs', String(fs)); } catch (e) { /* ignore */ } };
+  const bump = (d) => { fs = Math.min(1.8, Math.max(0.8, Math.round((fs + d) * 10) / 10)); applyFs(); };
+  applyFs();
   function shell(active, ...content) {
     const p = state.profile;
     const items = [['home', '首頁'], ['daily', '日帳明細'], ['monthly', '月結表'], ['analysis', '分析'], ['schedule', '排班表'], ['calendar', '行事曆']].filter(([k]) => canOpen(k));
@@ -150,7 +156,7 @@
         h('div', { class: 'who' }, p.display_name, h('span', { class: 'badge ' + p.role }, ROLE[p.role])),
         state.real && state.real.profile.role === 'admin' ? h('select', { class: 'vsel', title: '檢視視角', onchange: (e) => setView(e.target.value) },
           Object.entries(VIEWS).map(([k, v]) => h('option', { value: k, selected: k === curView() }, k === 'self' ? '視角：本人' : '視角：' + v[0]))) : null,
-        h('a', { class: 'small pwl', href: '#password' }, '改密碼'), h('button', { class: 'small', onclick: signOut }, '登出')),
+        h('button', { class: 'small fsb', title: '縮小字體', onclick: () => bump(-0.1) }, 'A−'), h('button', { class: 'small fsb', title: '放大字體', onclick: () => bump(0.1) }, 'A＋'), h('a', { class: 'small pwl', href: '#password' }, '改密碼'), h('button', { class: 'small', onclick: signOut }, '登出')),
       updateBadge(),
       h('div', { class: 'nav' }, items.map(([k, label]) =>
         h('a', { href: '#' + k, class: k === active ? 'on' : '' }, label))),
