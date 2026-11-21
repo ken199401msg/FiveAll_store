@@ -89,3 +89,14 @@ textarea{width:100%;padding:10px;border:1px solid #cfd6df;border-radius:10px;fon
 .kv span{font-size:12px;opacity:.75;display:block}
 .kv b{font-size:20px}
 input[type=date]{padding:9px 10px;border:1px solid #cfd6df;border-radius:10px;font-size:16px;background:#fff}
+.ord{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+.exporting{width:max-content !important;padding:12px !important}
+.exporting h3{font-size:24px}
+.exporting table{font-size:17px}
+.exporting th,.exporting td{padding:5px 8px !important;white-space:nowrap}
+.exporting .tw{overflow:visible !important}
+.exporting .note{max-width:900px}
+.exporting .note .c{font-size:17px}
+.exporting .meta,.exporting .note .m{font-size:14px}
+.exporting .big2{font-size:34px}
+.exporting .kv b{font-size:24px}

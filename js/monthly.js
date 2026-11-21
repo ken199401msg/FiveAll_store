@@ -29,7 +29,7 @@
   function build(d) {
     const s = d.store;
     const title = `${sel.store} ${sel.y}年${sel.m}月 月結表`;
-    const list = d.aliases.filter((a) => d.tot[a].work > 0).sort((a, b) => d.tot[b].amount - d.tot[a].amount);
+    const list = d.aliases.filter((a) => d.tot[a].work > 0);
     const th = (t) => h('th', {}, t);
     const head = h('tr', {}, ['師傅', '業績總額', '工作日', '平均額', '總人數', '指定', '指定率', '散客', '休假'].map(th));
     const rows = list.map((a) => {
@@ -49,6 +49,6 @@
       h('p', { class: 'big2' }, `總計 ${L.num(s.amount)} 元`), kv,
       h('p', { class: 'meta' }, '平均額＝業績 ÷ 工作日；工作日以日報表中狀態為「上班」的天數計算。'));
     const exp = L.exportBar(() => sheet, () => title, () => ({ page: 'monthly', store: sel.store, month: `${sel.y}-${L.pad(sel.m)}` }));
-    return [exp, sheet];
+    return [L.orderPanel(d, sel.store, sel.y, sel.m, render), exp, sheet];
   }
 })();

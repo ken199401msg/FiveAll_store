@@ -40,11 +40,13 @@
   /* 讀取某店某月的日報（含明細）並統計 */
   async function loadMonth(store, y, m) {
     const { start, end, last } = monthRange(y, m);
-    const [{ data: reports, error }, ths] = await Promise.all([
+    const ym = `${y}-${pad(m)}`;
+    const [{ data: reports, error }, ths, ord] = await Promise.all([
       sb.from('daily_reports')
         .select('id,report_date,daily_report_items(name,status,amount,total_count,unfulfilled)')
         .eq('store', store).gte('report_date', start).lte('report_date', end).order('report_date'),
-      therapists()
+      therapists(),
+      sb.from('therapist_order').select('ym,aliases').eq('store', store).lte('ym', ym).order('ym', { ascending: false }).limit(1)
     ]);
     if (error) throw new Error(error.message);
     const byAlias = Object.fromEntries(ths.map((t) => [t.alias, t]));
@@ -69,11 +71,18 @@
     }
     // 師傅欄位順序：依師傅編號；沒有對應者排最後
     const order = (alias) => (byAlias[alias] ? byAlias[alias].id : 9999);
-    const aliases = Object.keys(tot).filter((a) => tot[a].work > 0 || tot[a].leave.length).sort((a, b) => order(a) - order(b));
+    let aliases = Object.keys(tot).filter((a) => tot[a].work > 0 || tot[a].leave.length).sort((a, b) => order(a) - order(b));
+    // 套用已儲存的排序（沿用最近一次；未在排序中的師傅排在最後）
+    const saved = ord && ord.data && ord.data[0] ? ord.data[0] : null;
+    if (saved) {
+      const idx = new Map(saved.aliases.map((a, i) => [a, i]));
+      const pos = (a) => (idx.has(a) ? idx.get(a) : 1000 + order(a));
+      aliases = aliases.sort((a, b) => pos(a) - pos(b));
+    }
     const nameOf = (alias) => (byAlias[alias] ? byAlias[alias].name : alias);
     const store_t = days.reduce((s, x) => ({ amount: s.amount + x.amount, count: s.count + x.count, walkin: s.walkin + x.walkin, days: s.days + (x.has ? 1 : 0) }), { amount: 0, count: 0, walkin: 0, days: 0 });
     store_t.designated = store_t.count - store_t.walkin;
-    return { days, aliases, tot, nameOf, store: store_t, y, m, range: { start, end, last } };
+    return { days, aliases, tot, nameOf, store: store_t, y, m, range: { start, end, last }, orderYm: saved ? saved.ym : null };
   }
 
   /* 店別＋月份選擇列。onChange(store,y,m) */
@@ -90,6 +99,39 @@
   function initialSel() {
     const t = todayTW();
     return { store: myStores()[0], y: t.y, m: t.m };
+  }
+
+  /* ---------- 師傅排序（依店別＋月份儲存） ---------- */
+  function orderPanel(d, store, y, m, onSaved) {
+    const ym = `${y}-${pad(m)}`;
+    let list = d.aliases.slice();
+    const box = h('div');
+    const msg = h('div');
+    const note = d.orderYm ? (d.orderYm === ym ? '本月已儲存排序。' : `目前沿用 ${d.orderYm} 的排序，儲存後會成為本月排序。`) : '目前為預設排序。';
+    function swap(i, j) { [list[i], list[j]] = [list[j], list[i]]; paint(); }
+    function paint() {
+      box.replaceChildren(...list.map((a, i) => h('div', { class: 'ord' },
+        h('span', {}, `${i + 1}. ${d.nameOf(a)}`),
+        h('span', {},
+          h('button', { class: 'small', disabled: i === 0, onclick: () => swap(i, i - 1) }, '▲'), ' ',
+          h('button', { class: 'small', disabled: i === list.length - 1, onclick: () => swap(i, i + 1) }, '▼')))));
+    }
+    paint();
+    const run = (fn, okText) => async (e) => {
+      e.target.disabled = true; msg.replaceChildren();
+      const { error } = await fn();
+      e.target.disabled = false;
+      if (error) { APP.showMsg(msg, '失敗：' + error.message, 'err'); return; }
+      APP.showMsg(msg, okText, 'ok'); onSaved();
+    };
+    return h('details', {},
+      h('summary', {}, '調整師傅順序'),
+      h('p', { class: 'meta' }, `${store} ${y} 年 ${m} 月。${note}日帳明細與月結表共用同一份排序。`),
+      box,
+      h('div', { class: 'row' },
+        h('button', { class: 'small', onclick: run(() => sb.rpc('set_therapist_order', { p_store: store, p_ym: ym, p_order: list }), '已儲存排序') }, '儲存排序'),
+        h('button', { class: 'small', onclick: run(() => sb.rpc('reset_therapist_order', { p_store: store, p_ym: ym }), '已還原為預設排序') }, '還原預設')),
+      msg);
   }
 
   /* ---------- 輸出：PDF／圖片 ---------- */
@@ -111,34 +153,47 @@
   async function capture(el) {
     await loadLib('html2canvas', () => window.html2canvas);
     const wraps = [el, ...el.querySelectorAll('.tw')];
-    const saved = wraps.map((w) => [w.style.overflow, w.style.width]);
+    const saved = wraps.map((w) => w.style.overflow);
     wraps.forEach((w) => { w.style.overflow = 'visible'; });
-    el.style.width = 'max-content';
     const hidden = [...el.querySelectorAll('.noexp')];
     hidden.forEach((x) => { x.style.display = 'none'; });
+    el.classList.add('exporting'); // 緊湊大字、不換行、寬度依內容
     try {
+      await new Promise((r) => setTimeout(r, 50));
       return await window.html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
     } finally {
+      el.classList.remove('exporting');
       hidden.forEach((x) => { x.style.display = ''; });
-      wraps.forEach((w, i) => { w.style.overflow = saved[i][0]; });
-      el.style.width = saved[0][1];
+      wraps.forEach((w, i) => { w.style.overflow = saved[i]; });
     }
   }
   async function toPdf(el, name) {
     const c = await capture(el);
     await loadLib('jspdf', () => window.jspdf);
     const { jsPDF } = window.jspdf;
-    const landscape = c.width >= c.height;
-    const pdf = new jsPDF({ orientation: landscape ? 'l' : 'p', unit: 'pt', format: 'a4' });
-    const W = pdf.internal.pageSize.getWidth(), H = pdf.internal.pageSize.getHeight(), M = 20;
-    const scale = (W - M * 2) / c.width;
-    const sliceH = Math.floor((H - M * 2) / scale); // 每頁可放的原圖高度
+    const M = 20, A4W = 595.28, A4H = 841.89;
+    const fit = (W, H) => Math.min((W - 2 * M) / c.width, (H - 2 * M) / c.height);
+    const sl = fit(A4H, A4W), sp = fit(A4W, A4H); // 橫向、直向各自能放大的倍率
+    const s = Math.max(sl, sp);
+    if (s * 2 >= 0.55) { // 放得下一頁且字夠大：縮放到單頁、置中
+      const pdf = new jsPDF({ orientation: sl >= sp ? 'l' : 'p', unit: 'pt', format: 'a4' });
+      const W = pdf.internal.pageSize.getWidth();
+      const w = c.width * s, hh = c.height * s;
+      pdf.addImage(c.toDataURL('image/jpeg', 0.95), 'JPEG', (W - w) / 2, M, w, hh);
+      pdf.save(name + '.pdf');
+      return;
+    }
+    // 內容太長：依寬度縮放並分頁
+    const pdf = new jsPDF({ orientation: c.width >= c.height ? 'l' : 'p', unit: 'pt', format: 'a4' });
+    const W = pdf.internal.pageSize.getWidth(), H = pdf.internal.pageSize.getHeight();
+    const k = (W - M * 2) / c.width;
+    const sliceH = Math.floor((H - M * 2) / k);
     for (let y = 0, page = 0; y < c.height; y += sliceH, page++) {
       const part = document.createElement('canvas');
       part.width = c.width; part.height = Math.min(sliceH, c.height - y);
       part.getContext('2d').drawImage(c, 0, y, c.width, part.height, 0, 0, c.width, part.height);
       if (page > 0) pdf.addPage();
-      pdf.addImage(part.toDataURL('image/jpeg', 0.92), 'JPEG', M, M, c.width * scale, part.height * scale);
+      pdf.addImage(part.toDataURL('image/jpeg', 0.92), 'JPEG', M, M, c.width * k, part.height * k);
     }
     pdf.save(name + '.pdf');
   }
@@ -166,5 +221,5 @@
       h('button', { onclick: run('share_image', toImage) }, '分享圖片'), msg);
   }
 
-  window.LIB = { STATUS, WEEK, pad, num, pct, div, todayTW, monthRange, myStores, loadMonth, picker, initialSel, exportBar };
+  window.LIB = { STATUS, WEEK, pad, num, pct, div, todayTW, monthRange, myStores, loadMonth, picker, initialSel, exportBar, orderPanel };
 })();

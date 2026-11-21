@@ -93,7 +93,7 @@
     paint(notes);
 
     const exp = L.exportBar(() => sheet, () => title, () => ({ page: 'daily', store: sel.store, month: `${sel.y}-${L.pad(sel.m)}` }));
-    return [tiles, leaveBox, exp, sheet, addForm(refresh)];
+    return [tiles, leaveBox, L.orderPanel(d, sel.store, sel.y, sel.m, render), exp, sheet, addForm(refresh)];
   }
 
   function noteList(list, refresh) {
