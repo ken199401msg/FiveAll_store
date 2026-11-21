@@ -102,3 +102,25 @@ input[type=date]{padding:9px 10px;border:1px solid #cfd6df;border-radius:10px;fo
 .exporting .kv b{font-size:24px}
 .sheet td.cl{background:#e4e9ef;color:#4a5568;text-align:center;font-weight:700;letter-spacing:.6em}
 .sheet td.cl2{background:#f6f7f9;color:#9aa4b2;text-align:center}
+.eo{display:none}
+.exporting .eo{display:inline}
+.cs{width:100%;min-width:84px;padding:5px 4px;font-size:14px;border:1px solid #d5dbe3;border-radius:6px;background:#fff}
+.sheet td.lvc{background:#dff3e6;color:#17613a;font-weight:600;text-align:center}
+.sheet td.wkc{background:#fff3cd;color:#7a5300;font-weight:600;text-align:center}
+.sheet td.cnt{text-align:center;font-weight:700}
+.sheet td.cnt.low{color:#c0352b;background:#fdecea}
+.sheet td.lvc .cs,.sheet td.wkc .cs{background:transparent}
+.sheet td .eo{text-align:center}
+.calt{table-layout:fixed;width:100%}
+.sheet .calt th,.sheet .calt td{text-align:center;vertical-align:top;min-width:92px;border:1px solid #9aa4b2}
+.sheet .calt th.rl{width:56px;min-width:56px;background:#eef2f6;color:var(--ink)}
+.sheet .calt thead th{background:#f3d9b5;color:var(--ink)}
+.sheet .calt td.we,.sheet .calt thead th.we{background:#f9cc9f}
+.sheet .calt td.dl{font-weight:800;border-top:3px solid #333}
+.sheet .calt td.nm{font-size:18px;font-weight:700;height:2.6em}
+.sheet .calt td.nm.sm{font-size:14px;font-weight:600;height:1.8em}
+.early-t{color:#d11;font-weight:700;text-align:center;margin:6px 0}
+.early-t input{max-width:360px;text-align:center}
+.exporting .calt{table-layout:auto;width:auto}
+.exporting .calt td.nm{font-size:22px}
+.exporting .early-t{font-size:20px}

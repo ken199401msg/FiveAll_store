@@ -26,15 +26,15 @@
     const body = h('div', {}, h('p', { class: 'meta' }, '載入中…'));
     mount(...shell('daily', h('h2', {}, '日帳明細'), L.picker(sel, render), body));
     try {
-      const [data, notes] = await Promise.all([L.loadMonth(sel.store, sel.y, sel.m), loadNotes()]);
+      const [data, notes, sch] = await Promise.all([L.loadMonth(sel.store, sel.y, sel.m), loadNotes(), L.loadSchedule(sel.store, sel.y, sel.m).catch(() => null)]);
       if (my !== seq) return;
-      body.replaceChildren(...build(data, notes));
+      body.replaceChildren(...build(data, notes, sch));
     } catch (e) {
       if (my === seq) body.replaceChildren(h('div', { class: 'msg err' }, '讀取失敗：' + e.message));
     }
   }
 
-  function build(d, notes) {
+  function build(d, notes, sch) {
     const s = d.store;
     const title = `${sel.store} ${sel.y}年${sel.m}月 日帳明細`;
     const tiles = h('div', { class: 'sum' },
@@ -49,7 +49,7 @@
       leaves.length
         ? leaves.map((a) => h('p', { class: 'meta' }, d.nameOf(a) + '：' + d.tot[a].leave.map((x) => `${Number(x.date.slice(8))}日${L.STATUS[x.status] || x.status}`).join('、')))
         : h('p', { class: 'meta' }, '本月尚無休假紀錄'),
-      h('p', { class: 'meta' }, '排班表上線後，可由排班表／行事曆帶入預排休假。'));
+      plannedLeaves(d, sch));
 
     // 表格
     const A = d.aliases;
@@ -100,6 +100,23 @@
 
     const exp = L.exportBar(() => sheet, () => title, () => ({ page: 'daily', store: sel.store, month: `${sel.y}-${L.pad(sel.m)}` }));
     return [tiles, leaveBox, L.orderPanel(d, sel.store, sel.y, sel.m, render), exp, sheet, addForm(refresh)];
+  }
+
+  /* 預排休假：來自排班表（固定週休與已排的休假） */
+  function plannedLeaves(d, sch) {
+    if (!sch) return h('p', { class: 'meta' }, '（排班資料讀取失敗）');
+    const byAlias = {};
+    for (const [key, kind] of sch.entries) {
+      if (kind !== 'leave') continue;
+      const [date, alias] = key.split('|');
+      (byAlias[alias] = byAlias[alias] || []).push(date);
+    }
+    const names = Object.keys(byAlias);
+    const wk = Object.entries(sch.settings.week_off || {}).filter(([, v]) => v.length);
+    return h('div', {},
+      h('p', { class: 'meta' }, '預排休假（來自排班表）：' + (names.length ? '' : '尚未排班')),
+      names.map((a) => h('p', { class: 'meta' }, d.nameOf(a) + '：' + byAlias[a].sort().map((x) => `${Number(x.slice(5, 7))}/${Number(x.slice(8))}`).join('、'))),
+      wk.length ? h('p', { class: 'meta' }, '固定週休：' + wk.map(([a, v]) => d.nameOf(a) + ' 週' + v.map((w) => L.WEEK[w]).join('、')).join('；')) : null);
   }
 
   function noteList(list, refresh) {

@@ -114,6 +114,32 @@
     return { store: myStores()[0], y: t.y, m: t.m };
   }
 
+  /* ---------- 排班設定與紀錄 ---------- */
+  const SCHED_DEFAULT = { roster: null, week_off: {}, parttime: [], early: {}, early_label: '早班上班師傅 09:30～下班', weekday_staff: 0, weekend_staff: 0 };
+  async function loadSchedule(store, y, m) {
+    const { start, end } = monthRange(y, m);
+    const [a, b] = await Promise.all([
+      sb.from('schedule_settings').select('settings').eq('store', store).maybeSingle(),
+      sb.from('schedule_entries').select('work_date,alias,kind').eq('store', store).gte('work_date', start).lte('work_date', end)
+    ]);
+    if (a.error) throw new Error(a.error.message);
+    if (b.error) throw new Error(b.error.message);
+    const settings = Object.assign({}, SCHED_DEFAULT, a.data ? a.data.settings : {});
+    settings.week_off = settings.week_off || {}; settings.parttime = settings.parttime || []; settings.early = settings.early || {};
+    const entries = new Map(b.data.map((r) => [`${r.work_date}|${r.alias}`, r.kind]));
+    return { settings, saved: !!a.data, entries };
+  }
+  /* 尚未儲存名單時：依近 60 天日報有上班的師傅帶入 */
+  async function defaultRoster(store) {
+    const since = new Date(Date.now() - 60 * 864e5).toISOString().slice(0, 10);
+    const { data } = await sb.from('daily_reports').select('daily_report_items(name,status)').eq('store', store).gte('report_date', since);
+    const set = new Set();
+    (data || []).forEach((r) => r.daily_report_items.forEach((i) => { if (i.status === 'work') set.add(i.name); }));
+    const ths = await therapists();
+    const idx = new Map(ths.map((t, i) => [t.alias, i]));
+    return [...set].sort((a, b) => (idx.has(a) ? idx.get(a) : 999) - (idx.has(b) ? idx.get(b) : 999));
+  }
+
   /* ---------- 師傅排序（依店別＋月份儲存） ---------- */
   function orderPanel(d, store, y, m, onSaved) {
     const ym = `${y}-${pad(m)}`;
@@ -234,5 +260,5 @@
       h('button', { onclick: run('share_image', toImage) }, '分享圖片'), msg);
   }
 
-  window.LIB = { STATUS, WEEK, pad, num, pct, div, todayTW, monthRange, myStores, loadMonth, picker, initialSel, exportBar, orderPanel };
+  window.LIB = { STATUS, WEEK, pad, num, pct, div, todayTW, monthRange, myStores, loadMonth, picker, initialSel, exportBar, orderPanel, therapists, loadSchedule, defaultRoster };
 })();
