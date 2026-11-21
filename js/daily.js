@@ -57,9 +57,15 @@
     const head1 = h('tr', {}, th('日期', { class: 'l stk', rowspan: 2 }),
       A.map((a) => th(d.nameOf(a), { colspan: 3 })), th('店合計', { colspan: 5 }));
     const head2 = h('tr', { class: 'sub' }, A.map(() => ['業績', '來客', '指定'].map((t) => th(t))), ['業績', '來客', '指定', '散客', '客單價'].map((t) => th(t)));
+    const t0 = L.todayTW();
+    const todayStr = `${t0.y}-${L.pad(t0.m)}-${L.pad(t0.d)}`;
+    const span = A.length * 3 + 5;
     const rows = d.days.map((day) => {
       const we = day.dow === 0 || day.dow === 6 ? ' we' : '';
       const tds = [h('td', { class: 'stk' + we }, `${sel.m}/${day.d} 週${L.WEEK[day.dow]}`)];
+      // 店休：整天沒有業績，整列合併顯示；過去日期沒有日報則標示「無日報」
+      if (day.closed) return h('tr', {}, tds, h('td', { class: 'cl', colspan: span }, '店休'));
+      if (!day.has && day.date < todayStr) return h('tr', {}, tds, h('td', { class: 'cl2', colspan: span }, '無日報'));
       for (const a of A) {
         const c = day.cells[a];
         if (!c) tds.push(h('td', { class: we.trim(), colspan: 3 }, ''));

@@ -56,7 +56,6 @@
       days.push({ date, d, dow: new Date(y, m - 1, d).getDay(), cells: {}, has: false, amount: 0, count: 0, walkin: 0 });
     }
     const dayIdx = Object.fromEntries(days.map((x) => [x.date, x]));
-    const tot = {};
     for (const r of reports) {
       const day = dayIdx[r.report_date];
       if (!day) continue;
@@ -64,9 +63,18 @@
       for (const it of r.daily_report_items) {
         const a = Number(it.amount || 0), c = Number(it.total_count || 0), w = Number(it.unfulfilled || 0);
         day.cells[it.name] = { status: it.status, amount: a, count: c, walkin: w, designated: c - w };
-        const t = tot[it.name] || (tot[it.name] = { amount: 0, count: 0, walkin: 0, designated: 0, work: 0, leave: [] });
-        if (it.status === 'work') { t.amount += a; t.count += c; t.walkin += w; t.designated += c - w; t.work += 1; day.amount += a; day.count += c; day.walkin += w; }
-        else t.leave.push({ date: r.report_date, status: it.status });
+        if (it.status === 'work') { day.amount += a; day.count += c; day.walkin += w; }
+      }
+    }
+    // 整天沒有業績也沒有來客＝店休（店休日不計入師傅工作日與休假）
+    days.forEach((x) => { x.closed = x.has && x.amount === 0 && x.count === 0; });
+    const tot = {};
+    for (const day of days) {
+      if (day.closed) continue;
+      for (const [name, c] of Object.entries(day.cells)) {
+        const t = tot[name] || (tot[name] = { amount: 0, count: 0, walkin: 0, designated: 0, work: 0, leave: [] });
+        if (c.status === 'work') { t.amount += c.amount; t.count += c.count; t.walkin += c.walkin; t.designated += c.designated; t.work += 1; }
+        else t.leave.push({ date: day.date, status: c.status });
       }
     }
     // 師傅欄位順序：依師傅編號；沒有對應者排最後
@@ -80,7 +88,7 @@
       aliases = aliases.sort((a, b) => pos(a) - pos(b));
     }
     const nameOf = (alias) => (byAlias[alias] ? byAlias[alias].name : alias);
-    const store_t = days.reduce((s, x) => ({ amount: s.amount + x.amount, count: s.count + x.count, walkin: s.walkin + x.walkin, days: s.days + (x.has ? 1 : 0) }), { amount: 0, count: 0, walkin: 0, days: 0 });
+    const store_t = days.reduce((s, x) => ({ amount: s.amount + x.amount, count: s.count + x.count, walkin: s.walkin + x.walkin, days: s.days + (x.has && !x.closed ? 1 : 0) }), { amount: 0, count: 0, walkin: 0, days: 0 });
     store_t.designated = store_t.count - store_t.walkin;
     return { days, aliases, tot, nameOf, store: store_t, y, m, range: { start, end, last }, orderYm: saved ? saved.ym : null };
   }

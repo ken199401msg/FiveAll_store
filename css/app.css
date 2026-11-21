@@ -100,3 +100,5 @@ input[type=date]{padding:9px 10px;border:1px solid #cfd6df;border-radius:10px;fo
 .exporting .meta,.exporting .note .m{font-size:14px}
 .exporting .big2{font-size:34px}
 .exporting .kv b{font-size:24px}
+.sheet td.cl{background:#e4e9ef;color:#4a5568;text-align:center;font-weight:700;letter-spacing:.6em}
+.sheet td.cl2{background:#f6f7f9;color:#9aa4b2;text-align:center}
