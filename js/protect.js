@@ -27,23 +27,30 @@
   }
 
   /* 產生 45 度斜向重複圖樣；回傳 { url, size }（size 為 CSS 像素） */
+  function wrap(text, n) {
+    const out = [];
+    String(text || '').split(/\n/).forEach((para) => { for (let i = 0; i < para.length; i += n) out.push(para.slice(i, i + n)); if (!para) out.push(''); });
+    return out.filter((l, i, a) => l || i < a.length - 1);
+  }
   function pattern(w) {
-    const title = fill(w.title), body = fill(w.body);
+    const title = fill(w.title), lines = wrap(fill(w.body), 22);
     const k = 2; // 輸出圖片用 2 倍解析度
     const c = document.createElement('canvas');
     const g0 = c.getContext('2d');
-    g0.font = 'bold 22px sans-serif'; const w1 = g0.measureText(title).width;
-    g0.font = '16px sans-serif'; const w2 = g0.measureText(body).width;
-    const textW = Math.max(w1, w2);
+    g0.font = 'bold 22px sans-serif'; let textW = g0.measureText(title).width;
+    g0.font = '16px sans-serif'; lines.forEach((l) => { textW = Math.max(textW, g0.measureText(l).width); });
+    const blockH = (title ? 30 : 0) + lines.length * 21;
     const cell = Math.round(460 - (Math.min(5, Math.max(1, w.density)) - 1) * 80); // 密集度 1(疏)~5(密)
-    const S = Math.max(cell, Math.ceil((textW + 50) / 1.414));
+    const S = Math.max(cell, Math.ceil((textW + blockH + 50) / 1.414));
     c.width = S * k; c.height = S * k;
     const g = c.getContext('2d');
     g.scale(k, k); g.translate(S / 2, S / 2); g.rotate(-Math.PI / 4);
     g.globalAlpha = Math.min(0.6, Math.max(0.02, w.opacity));
     g.fillStyle = '#000'; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.font = 'bold 22px sans-serif'; if (title) g.fillText(title, 0, body ? -13 : 0);
-    g.font = '16px sans-serif'; if (body) g.fillText(body, 0, title ? 13 : 0);
+    let y = -blockH / 2 + 12;
+    if (title) { g.font = 'bold 22px sans-serif'; g.fillText(title, 0, y); y += 30; }
+    g.font = '16px sans-serif';
+    lines.forEach((l) => { g.fillText(l, 0, y); y += 21; });
     return { url: c.toDataURL('image/png'), size: S };
   }
 
@@ -108,7 +115,7 @@
     const repaint = () => { const p = pattern(w); prev.style.backgroundImage = `url(${p.url})`; prev.style.backgroundSize = `${p.size}px ${p.size}px`; };
     const onBox = h('input', { type: 'checkbox', checked: w.on, onchange: (e) => { w.on = e.target.checked; } });
     const title = h('input', { type: 'text', maxlength: 30, value: w.title, oninput: (e) => { w.title = e.target.value; repaint(); } });
-    const body = h('input', { type: 'text', maxlength: 60, value: w.body, oninput: (e) => { w.body = e.target.value; repaint(); } });
+    const body = h('textarea', { rows: 4, maxlength: 300, value: w.body, oninput: (e) => { w.body = e.target.value; repaint(); } });
     const opLab = h('b', {}, Math.round(w.opacity * 100) + '%');
     const op = h('input', { type: 'range', min: 3, max: 40, step: 1, value: Math.round(w.opacity * 100), oninput: (e) => { w.opacity = Number(e.target.value) / 100; opLab.textContent = e.target.value + '%'; repaint(); } });
     const dnLab = h('b', {}, String(w.density));
