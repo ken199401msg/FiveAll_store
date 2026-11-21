@@ -46,7 +46,7 @@
         .select('id,report_date,daily_report_items(name,status,amount,total_count,unfulfilled)')
         .eq('store', store).gte('report_date', start).lte('report_date', end).order('report_date'),
       therapists(),
-      sb.from('therapist_order').select('ym,aliases').eq('store', store).lte('ym', ym).order('ym', { ascending: false }).limit(1)
+      sb.from('therapist_order').select('ym,aliases,hidden').eq('store', store).lte('ym', ym).order('ym', { ascending: false }).limit(1)
     ]);
     if (error) throw new Error(error.message);
     const byAlias = Object.fromEntries(ths.map((t) => [t.alias, t]));
@@ -92,10 +92,14 @@
       const pos = (a) => (idx.has(a) ? idx.get(a) : 1000 + order(a));
       aliases = aliases.sort((a, b) => pos(a) - pos(b));
     }
+    // 已隱藏的師傅（本月沒有上班紀錄才會隱藏；有業績的不隱藏，避免合計對不上）
+    const hiddenAll = saved && saved.hidden ? saved.hidden : [];
+    const hidden = hiddenAll.filter((a) => tot[a] && tot[a].work === 0);
+    aliases = aliases.filter((a) => !hidden.includes(a));
     const nameOf = (alias) => (byAlias[alias] ? byAlias[alias].name : alias);
     const store_t = days.reduce((s, x) => ({ amount: s.amount + x.amount, count: s.count + x.count, walkin: s.walkin + x.walkin, days: s.days + (x.has && !x.closed ? 1 : 0) }), { amount: 0, count: 0, walkin: 0, days: 0 });
     store_t.designated = store_t.count - store_t.walkin;
-    return { days, aliases, tot, nameOf, store: store_t, y, m, range: { start, end, last }, orderYm: saved ? saved.ym : null };
+    return { days, aliases, tot, nameOf, store: store_t, y, m, range: { start, end, last }, orderYm: saved ? saved.ym : null, hidden, tot_all: tot };
   }
 
   /* 店別＋月份選擇列。onChange(store,y,m) */
@@ -144,6 +148,7 @@
   function orderPanel(d, store, y, m, onSaved) {
     const ym = `${y}-${pad(m)}`;
     let list = d.aliases.slice();
+    let hid = (d.hidden || []).slice();
     const box = h('div');
     const msg = h('div');
     const note = d.orderYm ? (d.orderYm === ym ? '本月已儲存排序。' : `目前沿用 ${d.orderYm} 的排序，儲存後會成為本月排序。`) : '目前為預設排序。';
@@ -153,7 +158,13 @@
         h('span', {}, `${i + 1}. ${d.nameOf(a)}`),
         h('span', {},
           h('button', { class: 'small', disabled: i === 0, onclick: () => swap(i, i - 1) }, '▲'), ' ',
-          h('button', { class: 'small', disabled: i === list.length - 1, onclick: () => swap(i, i + 1) }, '▼')))));
+          h('button', { class: 'small', disabled: i === list.length - 1, onclick: () => swap(i, i + 1) }, '▼'), ' ',
+          h('button', {
+            class: 'small', disabled: (d.tot_all[a] && d.tot_all[a].work > 0), title: '本月有上班紀錄的師傅不能隱藏',
+            onclick: () => { list.splice(i, 1); hid.push(a); paint(); }
+          }, '隱藏')))),
+        ...(hid.length ? [h('div', { class: 'ord' }, h('span', { class: 'meta' }, '已隱藏（不顯示在表格）：'),
+          h('span', {}, hid.map((a) => h('button', { class: 'small', style: 'margin-left:6px', onclick: () => { hid = hid.filter((x) => x !== a); list.push(a); paint(); } }, `${d.nameOf(a)} 還原`))))] : []));
     }
     paint();
     const run = (fn, okText) => async (e) => {
@@ -165,10 +176,10 @@
     };
     return h('details', {},
       h('summary', {}, '調整師傅順序'),
-      h('p', { class: 'meta' }, `${store} ${y} 年 ${m} 月。${note}日帳明細與月結表共用同一份排序。`),
+      h('p', { class: 'meta' }, `${store} ${y} 年 ${m} 月。${note}日帳明細與月結表共用同一份排序。「隱藏」只是不顯示該師傅的欄位，不會刪除資料；本月有上班紀錄的師傅不能隱藏。`),
       box,
       h('div', { class: 'row' },
-        h('button', { class: 'small', onclick: run(() => sb.rpc('set_therapist_order', { p_store: store, p_ym: ym, p_order: list }), '已儲存排序') }, '儲存排序'),
+        h('button', { class: 'small', onclick: run(() => sb.rpc('set_therapist_order', { p_store: store, p_ym: ym, p_order: list, p_hidden: hid }), '已儲存排序') }, '儲存排序'),
         h('button', { class: 'small', onclick: run(() => sb.rpc('reset_therapist_order', { p_store: store, p_ym: ym }), '已還原為預設排序') }, '還原預設')),
       msg);
   }

@@ -1,2 +1,3 @@
 -- 已套用於資料庫（摘要）：recon_marks(store, report_date, marked_by, marked_by_name, marked_at)；
 -- recon_mark(p_store, p_dates date[], p_on boolean)：需 app_can_edit() 且可看該店；唯讀政策依 can_see_store 與 app_data_from()
+-- therapist_order.hidden text[]；set_therapist_order(p_store, p_ym, p_order, p_hidden)（已套用）
