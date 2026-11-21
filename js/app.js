@@ -130,14 +130,16 @@
   const canEdit = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager' || (p.role === 'accountant' && !!p.can_edit)); };
   const canEditCal = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager'); }; // 行事曆：帳務一律不可修改
   const canOpen = (k) => !(state.profile.role === 'accountant' && !(ACCT_PAGES.includes(k) || (k === 'analysis' && state.profile.can_analysis)));
+  const VER = 31;
   /* 資料更新時間：最新一筆日報的日期與寫入時間 */
   function updateBadge() {
     const el = h('div', { class: 'upd' }, '資料更新時間：讀取中…');
+    const ver = ' ｜ 版本 v' + VER;
     sb.from('daily_reports').select('report_date,created_at').order('created_at', { ascending: false }).limit(1)
       .then(({ data, error }) => {
         const r = data && data[0];
-        el.textContent = error || !r ? '資料更新時間：—' : `資料更新時間：${fmtTime(r.created_at)}（最新日報 ${r.report_date}）`;
-      }, () => { el.textContent = '資料更新時間：—'; });
+        el.textContent = (error || !r ? '資料更新時間：—' : `資料更新時間：${fmtTime(r.created_at)}（最新日報 ${r.report_date}）`) + ver;
+      }, () => { el.textContent = '資料更新時間：—' + ver; });
     return el;
   }
   /* 字體大小（每台裝置各自記住）：套用到內容區 */

@@ -58,8 +58,10 @@
       const line = raw.trim();
       if (!line) continue;
       const dm = line.match(/^(\d{1,2})\s*\/\s*(\d{1,2})(?!\d)(?![-~–])(?:\s*[（(][^)）]*[)）])?\s*(?:未)?\s*(?:共)?\s*$/);
-      if (dm) {
-        const mo = Number(dm[1]), da = Number(dm[2]);
+      // 備援：整行只有「月 分隔 日 未 共」（分隔符號或空白種類不明時）也視為日期行
+      const dm2 = dm || (/未/.test(line) && /共/.test(line) && !/^[^\d]/.test(line) ? line.match(/^(\d{1,2})[^\d\n]{1,6}?(\d{1,2})(?!\d)[^\d]*$/) : null);
+      if (dm2) {
+        const mo = Number(dm2[1]), da = Number(dm2[2]);
         let y = sel.y;
         if (mo - sel.m > 6) y -= 1; else if (sel.m - mo > 6) y += 1;
         cur = { date: `${y}-${L.pad(mo)}-${L.pad(da)}`, label: `${mo}/${da}`, rows: [], total: null, notes: [] };
