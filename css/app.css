@@ -136,3 +136,13 @@ input[type=date]{padding:9px 10px;border:1px solid #cfd6df;border-radius:10px;fo
 .exporting .charts{grid-template-columns:repeat(2,640px)}
 .salary{background:#fff8e6;border:1px dashed #d9a400;border-radius:var(--r);padding:10px;margin:10px 0}
 .salary .row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:8px}
+
+/* 分析頁輸出：直式大字版（給師傅手機閱讀） */
+.sheet.ana.exporting{width:900px !important;padding:20px !important}
+.ana.exporting h3{font-size:44px;margin-bottom:12px}
+.ana.exporting h4{font-size:34px;margin:22px 0 10px}
+.ana.exporting table{font-size:27px}
+.ana.exporting th,.ana.exporting td{padding:10px 12px !important}
+.ana.exporting .meta{font-size:24px;line-height:1.5}
+.ana.exporting .meta,.ana.exporting .blk p{white-space:normal}
+.ana.exporting .charts{grid-template-columns:1fr}
