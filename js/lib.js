@@ -92,9 +92,9 @@
       const pos = (a) => (idx.has(a) ? idx.get(a) : 1000 + order(a));
       aliases = aliases.sort((a, b) => pos(a) - pos(b));
     }
-    // 已隱藏的師傅（本月沒有上班紀錄才會隱藏；有業績的不隱藏，避免合計對不上）
+    // 已隱藏的師傅：只是不顯示欄位，店合計仍包含其業績
     const hiddenAll = saved && saved.hidden ? saved.hidden : [];
-    const hidden = hiddenAll.filter((a) => tot[a] && tot[a].work === 0);
+    const hidden = hiddenAll.filter((a) => tot[a]);
     aliases = aliases.filter((a) => !hidden.includes(a));
     const nameOf = (alias) => (byAlias[alias] ? byAlias[alias].name : alias);
     const store_t = days.reduce((s, x) => ({ amount: s.amount + x.amount, count: s.count + x.count, walkin: s.walkin + x.walkin, days: s.days + (x.has && !x.closed ? 1 : 0) }), { amount: 0, count: 0, walkin: 0, days: 0 });
@@ -160,8 +160,12 @@
           h('button', { class: 'small', disabled: i === 0, onclick: () => swap(i, i - 1) }, '▲'), ' ',
           h('button', { class: 'small', disabled: i === list.length - 1, onclick: () => swap(i, i + 1) }, '▼'), ' ',
           h('button', {
-            class: 'small', disabled: (d.tot_all[a] && d.tot_all[a].work > 0), title: '本月有上班紀錄的師傅不能隱藏',
-            onclick: () => { list.splice(i, 1); hid.push(a); paint(); }
+            class: 'small',
+            onclick: () => {
+              const w = d.tot_all[a] && d.tot_all[a].work;
+              if (w > 0 && !confirm(`${d.nameOf(a)} 本月有 ${w} 天上班紀錄。隱藏後表格不會顯示他的欄位，但店合計仍包含他的業績。確定隱藏？`)) return;
+              list.splice(i, 1); hid.push(a); paint();
+            }
           }, '隱藏')))),
         ...(hid.length ? [h('div', { class: 'ord' }, h('span', { class: 'meta' }, '已隱藏（不顯示在表格）：'),
           h('span', {}, hid.map((a) => h('button', { class: 'small', style: 'margin-left:6px', onclick: () => { hid = hid.filter((x) => x !== a); list.push(a); paint(); } }, `${d.nameOf(a)} 還原`))))] : []));
@@ -176,7 +180,7 @@
     };
     return h('details', {},
       h('summary', {}, '調整師傅順序'),
-      h('p', { class: 'meta' }, `${store} ${y} 年 ${m} 月。${note}日帳明細與月結表共用同一份排序。「隱藏」只是不顯示該師傅的欄位，不會刪除資料；本月有上班紀錄的師傅不能隱藏。`),
+      h('p', { class: 'meta' }, `${store} ${y} 年 ${m} 月。${note}日帳明細與月結表共用同一份排序。「隱藏」只是不顯示該師傅的欄位，不會刪除資料，店合計仍包含其業績。`),
       box,
       h('div', { class: 'row' },
         h('button', { class: 'small', onclick: run(() => sb.rpc('set_therapist_order', { p_store: store, p_ym: ym, p_order: list, p_hidden: hid }), '已儲存排序') }, '儲存排序'),
