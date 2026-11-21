@@ -102,7 +102,7 @@
   /* ---------- 版型 ---------- */
   function shell(active, ...content) {
     const p = state.profile;
-    const items = [['home', '首頁'], ['daily', '日帳明細'], ['monthly', '月結表'], ['schedule', '排班表'], ['calendar', '行事曆']];
+    const items = [['home', '首頁'], ['daily', '日帳明細'], ['monthly', '月結表'], ['analysis', '分析'], ['schedule', '排班表'], ['calendar', '行事曆']];
     if (p.role === 'admin') items.push(['users', '帳號管理'], ['logs', '操作紀錄']);
     return [
       h('div', { class: 'topbar' },
@@ -137,7 +137,7 @@
     const pages = [
       ['daily', '日帳明細', '每日各師傅業績、來客、指定與記事'],
       ['monthly', '月結表', '師傅月業績、工作日、指定率'],
-      [null, '分析', '店舖與個人績效分析'],
+      ['analysis', '分析', '店舖與個人績效分析'],
       ['schedule', '排班表', '每月排班、固定週休與一鍵帶入休假'],
       ['calendar', '行事曆', '週曆與休假、早班師傅，可輸出 PDF']
     ];
