@@ -211,3 +211,9 @@ body.veil #app{filter:blur(28px);opacity:.15}
 .rissues{margin:6px 0;padding-left:20px;color:#c0352b;font-weight:600}
 details.recon{border-color:#12507a;border-width:2px}
 details.recon>summary{font-weight:700;color:#12507a;font-size:17px}
+
+/* 手機頁首：標題獨佔一行，按鈕不換行 */
+.topbar{flex-wrap:wrap;row-gap:8px}
+.topbar .t{white-space:nowrap}
+.topbar .who,.topbar button,.topbar a,.topbar .badge{white-space:nowrap}
+@media (max-width:720px){.topbar .t{flex-basis:100%}.topbar .who{flex:1 1 auto;text-align:left}}

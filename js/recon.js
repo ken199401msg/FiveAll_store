@@ -19,33 +19,22 @@
   const bar = (x, y, w, c) => sv('rect', { x, y, width: w, height: 7, rx: 3, fill: c || '#8e8e93' });
   const chk = (y, on) => sv('circle', { cx: 24, cy: y, r: 9, fill: on ? '#06c755' : 'none', stroke: on ? '#06c755' : '#aaa', 'stroke-width': 2 });
   const hl = (x, y, w, hgt) => sv('rect', { x, y, width: w, height: hgt, rx: 8, fill: 'none', stroke: '#ff3b30', 'stroke-width': 3 });
-  function shot1() {
-    return phone('① 選擇訊息',
-      chk(70, false), sv('rect', { x: 48, y: 56, width: 150, height: 38, rx: 10, fill: '#3a3a3c' }), bar(58, 68, 90), bar(58, 80, 60),
-      chk(130, true), sv('rect', { x: 48, y: 112, width: 150, height: 74, rx: 10, fill: '#06c755' }), bar(58, 124, 70, '#fff'), bar(58, 138, 110, '#fff'), bar(58, 152, 100, '#fff'), bar(58, 166, 80, '#fff'),
-      chk(226, true), sv('rect', { x: 48, y: 200, width: 150, height: 74, rx: 10, fill: '#06c755' }), bar(58, 212, 70, '#fff'), bar(58, 226, 110, '#fff'), bar(58, 240, 100, '#fff'), bar(58, 254, 80, '#fff'),
-      sv('rect', { x: 14, y: 288, width: 70, height: 28, rx: 8, fill: 'none', stroke: '#777' }), sv('text', { x: 49, y: 307, 'text-anchor': 'middle', 'font-size': 12, fill: '#fff' }, '取消'),
-      sv('rect', { x: 96, y: 288, width: 130, height: 28, rx: 8, fill: '#06c755' }), sv('text', { x: 161, y: 307, 'text-anchor': 'middle', 'font-size': 12, fill: '#fff', 'font-weight': 700 }, '分享 (2)'), hl(94, 286, 134, 32));
+  function shot1() { // 長按訊息 → 拷貝
+    return phone('① 長按訊息，點「拷貝」',
+      sv('rect', { x: 20, y: 52, width: 150, height: 40, rx: 10, fill: '#3a3a3c' }), bar(30, 64, 90), bar(30, 78, 60),
+      sv('rect', { x: 60, y: 110, width: 170, height: 80, rx: 10, fill: '#06c755' }), bar(70, 122, 70, '#fff'), bar(70, 136, 120, '#fff'), bar(70, 150, 110, '#fff'), bar(70, 164, 90, '#fff'),
+      sv('rect', { x: 60, y: 204, width: 170, height: 96, rx: 12, fill: '#2c2c2e' }),
+      [['拷貝', 224], ['分享', 250], ['回覆', 276]].map(([t, y]) => sv('text', { x: 76, y: y + 2, 'font-size': 14, fill: '#fff' }, t)),
+      hl(64, 208, 162, 28));
   }
-  function shot2() {
-    return phone('② 選擇傳送對象',
-      sv('rect', { x: 8, y: 120, width: 224, height: 202, rx: 16, fill: '#2c2c2e' }),
-      [0, 1, 2, 3].map((i) => sv('circle', { cx: 40 + i * 54, cy: 168, r: 20, fill: '#555' })),
-      [0, 1, 2].map((i) => sv('circle', { cx: 40 + i * 54, cy: 232, r: 20, fill: '#555' })),
-      sv('line', { x1: 14, x2: 226, y1: 268, y2: 268, stroke: '#555' }),
-      [['Keep', 36], ['記事本', 100]].map(([t, x]) => sv('g', {}, sv('rect', { x: x - 14, y: 278, width: 28, height: 22, rx: 5, fill: 'none', stroke: '#aaa' }), sv('text', { x, y: 314, 'text-anchor': 'middle', 'font-size': 10, fill: '#ddd' }, t))),
-      sv('g', {}, sv('rect', { x: 150, y: 278, width: 28, height: 22, rx: 5, fill: 'none', stroke: '#aaa' }), sv('text', { x: 164, y: 314, 'text-anchor': 'middle', 'font-size': 10, fill: '#ddd' }, '分享至應用程式')),
-      hl(126, 272, 76, 50));
-  }
-  function shot3() {
-    return phone('③ 分享選單',
-      sv('rect', { x: 8, y: 50, width: 224, height: 272, rx: 16, fill: '#2c2c2e' }),
-      sv('rect', { x: 20, y: 62, width: 34, height: 34, rx: 8, fill: '#fff' }), sv('text', { x: 66, y: 76, 'font-size': 12, fill: '#fff', 'font-weight': 700 }, '2 個影像'), bar(66, 84, 90),
-      [0, 1, 2, 3].map((i) => sv('circle', { cx: 38 + i * 54, cy: 128, r: 18, fill: '#555' })),
-      [0, 1, 2, 3].map((i) => sv('rect', { x: 20 + i * 54, y: 166, width: 36, height: 36, rx: 9, fill: '#4a90e2' })),
-      sv('rect', { x: 20, y: 236, width: 36, height: 36, rx: 18, fill: '#666' }), sv('text', { x: 38, y: 290, 'text-anchor': 'middle', 'font-size': 11, fill: '#fff', 'font-weight': 700 }, '拷貝'),
-      [1, 2, 3].map((i) => sv('rect', { x: 20 + i * 54, y: 236, width: 36, height: 36, rx: 18, fill: '#444' })),
-      hl(14, 228, 48, 74));
+  function shot2() { // 回到本頁：貼上剪貼簿
+    return phone('② 回到本頁，按「貼上」',
+      sv('rect', { x: 16, y: 50, width: 208, height: 150, rx: 8, fill: '#fff' }),
+      bar(26, 64, 120, '#555'), bar(26, 80, 80, '#555'), bar(26, 96, 110, '#555'), bar(26, 112, 90, '#555'),
+      sv('rect', { x: 16, y: 214, width: 96, height: 34, rx: 8, fill: '#12507a' }), sv('text', { x: 64, y: 236, 'text-anchor': 'middle', 'font-size': 13, fill: '#fff', 'font-weight': 700 }, '貼上'),
+      sv('rect', { x: 124, y: 214, width: 100, height: 34, rx: 8, fill: '#06c755' }), sv('text', { x: 174, y: 236, 'text-anchor': 'middle', 'font-size': 13, fill: '#fff', 'font-weight': 700 }, '送出對帳'),
+      hl(12, 210, 104, 42),
+      sv('text', { x: 120, y: 285, 'text-anchor': 'middle', 'font-size': 12, fill: '#ddd' }, '每天一則：拷貝 → 貼上，重複到全部貼完'));
   }
 
   /* ---------- 解析 ---------- */
@@ -54,10 +43,11 @@
     const days = [];
     let cur = null;
     const sumPlus = (t) => String(t).split('+').reduce((s, x) => s + (Number(x) || 0), 0);
-    for (const raw of String(text).replace(/　/g, ' ').split(/\r?\n/)) {
+    const clean = String(text).replace(/[　 ​-‍﻿]/g, ' ').replace(/[／⁄]/g, '/').replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 65248));
+    for (const raw of clean.split(/\r?\n/)) {
       const line = raw.trim();
       if (!line) continue;
-      const dm = line.match(/^(\d{1,2})\/(\d{1,2})\s*(?:未)?\s*(?:共)?$/);
+      const dm = line.match(/^(\d{1,2})\/(\d{1,2})(?!\d)(?![-~–])(?:\s*[（(][^)）]*[)）])?\s*(?:未)?\s*(?:共)?\s*$/);
       if (dm) {
         const mo = Number(dm[1]), da = Number(dm[2]);
         let y = sel.y;
@@ -67,6 +57,10 @@
         continue;
       }
       if (!cur) continue;
+      if (cur.total && alSet.some((a) => line.startsWith(a))) { // 已有「總」行卻又出現師傅行：視為新的一天（日期行沒讀到）
+        cur = { date: '', label: `（日期不明，接在 ${cur.label} 之後）`, rows: [], total: null, notes: ['這一天沒有讀到日期行，無法與系統比對'], undated: true };
+        days.push(cur);
+      }
       const key = line.startsWith('總') ? '總' : alSet.find((a) => line.startsWith(a));
       if (!key) continue;
       const rest = line.slice(key.length).trim();
@@ -107,7 +101,8 @@
     day.bad = bad;
     // 與系統比對
     day.sys = sysDay || null;
-    if (!sysDay) issues.push('系統內找不到這一天的日報');
+    if (day.undated) { /* 無日期：不與系統比對 */ }
+    else if (!sysDay) issues.push('系統內找不到這一天的日報');
     else {
       const items = sysDay.items;
       day.rows.forEach((r) => {
@@ -176,7 +171,8 @@
           const nameOf = (a) => (a === '總' ? '店' : nameOfM[a] || a);
           const days = parse(ta.value, aliases, sel);
           if (!days.length) { out.replaceChildren(h('div', { class: 'msg err' }, '沒有讀到日期行（例如「11/14」）。請確認貼上的內容。')); btn.disabled = false; return; }
-          const dates = days.map((d) => d.date).sort();
+          const dates = days.map((d) => d.date).filter(Boolean).sort();
+          if (!dates.length) { out.replaceChildren(h('div', { class: 'msg err' }, '沒有讀到日期行。')); btn.disabled = false; return; }
           const { data, error } = await sb.from('daily_reports').select('report_date,total_amount,daily_report_items(name,status,amount,total_count,unfulfilled)')
             .eq('store', sel.store).gte('report_date', dates[0]).lte('report_date', dates[dates.length - 1]);
           if (error) throw new Error(error.message);
@@ -195,14 +191,24 @@
         btn.disabled = false;
       }
     }, '送出對帳');
+    const pasteBtn = h('button', {
+      onclick: async () => {
+        try {
+          const t = await navigator.clipboard.readText();
+          if (!t || !t.trim()) { alert('剪貼簿是空的，請先到 LINE 拷貝一則日報'); return; }
+          ta.value = (ta.value ? ta.value.replace(/\s+$/, '') + '\n' : '') + t.trim() + '\n';
+        } catch (e) { alert('無法讀取剪貼簿，請在方框內長按後選「貼上」'); }
+      }
+    }, '貼上剪貼簿（加在下面）');
+    const clearBtn = h('button', { onclick: () => { ta.value = ''; out.replaceChildren(); results = null; } }, '清空');
     const steps = h('ol', { class: 'rsteps' },
-      ['在 LINE 的日報訊息上「長按」', '點「分享」', '勾選要對帳的訊息（可多則）', '按右下角「分享」', '選「分享至應用程式」', '選「拷貝」', '回到本頁，貼進下方方框', '按「送出對帳」'].map((t) => h('li', {}, t)));
+      ['在 LINE 的日報訊息上「長按」', '點「拷貝」（LINE 目前一次只能拷貝一則）', '回到本頁，按下方「貼上剪貼簿」（或在方框內長按貼上）', '換下一天的訊息，重複 ① ②，直到全部貼完', '按「送出對帳」'].map((t) => h('li', {}, t)));
     return h('details', { class: 'recon' }, h('summary', {}, '日報對帳（貼上 LINE 日報，檢查加總並與系統比對）'),
       h('p', { class: 'meta' }, `店別以上方選擇的「${getSel().store}」為準。格式：姓名 業績 散客 總來客；散客「1+0」會自動加總為 1；最後一行「總」是店業績，會用上面各師傅加總來檢查。`),
       steps,
-      h('div', { class: 'rshots' }, shot1(), shot2(), shot3()),
+      h('div', { class: 'rshots' }, shot1(), shot2()),
       h('p', { class: 'meta' }, '以上為示意畫面，實際外觀依手機與 LINE 版本而異。'),
-      ta, h('div', { class: 'act' }, btn), out);
+      ta, h('div', { class: 'act' }, pasteBtn, clearBtn, btn), out);
   }
   APP.recon = { panel, _t: { parse, check } };
 })();
