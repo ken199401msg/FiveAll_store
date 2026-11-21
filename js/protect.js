@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const { sb, h, state, shell, mount, showMsg } = APP;
-  const DEF = { watermark: { on: true, title: '五眾店務管理', body: '{使用者} {時間}', opacity: 0.12, density: 3 }, protect: { on: true } };
+  const DEF = { watermark: { on: true, title: '五眾店務管理', body: '{使用者} {時間}', opacity: 0.12, density: 3, angle: 45 }, protect: { on: true } };
   let cfg = { watermark: Object.assign({}, DEF.watermark), protect: Object.assign({}, DEF.protect) };
   let loadedAt = 0, email = '';
   let overlay = null;
@@ -41,10 +41,12 @@
     g0.font = '16px sans-serif'; lines.forEach((l) => { textW = Math.max(textW, g0.measureText(l).width); });
     const blockH = (title ? 30 : 0) + lines.length * 21;
     const cell = Math.round(460 - (Math.min(5, Math.max(1, w.density)) - 1) * 80); // 密集度 1(疏)~5(密)
-    const S = Math.max(cell, Math.ceil((textW + blockH + 50) / 1.414));
+    const rad = (Number.isFinite(Number(w.angle)) ? Number(w.angle) : 45) * Math.PI / 180;
+    const ex = textW * Math.abs(Math.cos(rad)) + blockH * Math.abs(Math.sin(rad)), ey = textW * Math.abs(Math.sin(rad)) + blockH * Math.abs(Math.cos(rad));
+    const S = Math.max(cell, Math.ceil(Math.max(ex, ey) + 50));
     c.width = S * k; c.height = S * k;
     const g = c.getContext('2d');
-    g.scale(k, k); g.translate(S / 2, S / 2); g.rotate(-Math.PI / 4);
+    g.scale(k, k); g.translate(S / 2, S / 2); g.rotate(-rad);
     g.globalAlpha = Math.min(0.6, Math.max(0.02, w.opacity));
     g.fillStyle = '#000'; g.textAlign = 'center'; g.textBaseline = 'middle';
     let y = -blockH / 2 + 12;
@@ -120,6 +122,8 @@
     const op = h('input', { type: 'range', min: 3, max: 40, step: 1, value: Math.round(w.opacity * 100), oninput: (e) => { w.opacity = Number(e.target.value) / 100; opLab.textContent = e.target.value + '%'; repaint(); } });
     const dnLab = h('b', {}, String(w.density));
     const dn = h('input', { type: 'range', min: 1, max: 5, step: 1, value: w.density, oninput: (e) => { w.density = Number(e.target.value); dnLab.textContent = e.target.value; repaint(); } });
+    const agLab = h('b', {}, (w.angle == null ? 45 : w.angle) + '°');
+    const ag = h('input', { type: 'range', min: -90, max: 90, step: 5, value: w.angle == null ? 45 : w.angle, oninput: (e) => { w.angle = Number(e.target.value); agLab.textContent = e.target.value + '°'; repaint(); } });
     const pBox = h('input', { type: 'checkbox', checked: pr.on, onchange: (e) => { pr.on = e.target.checked; } });
     const save = h('button', {
       class: 'primary', onclick: async () => {
@@ -134,12 +138,13 @@
     }, '儲存');
     mount(...shell('wmset', h('h2', {}, '浮水印與保護'),
       h('div', { class: 'card', style: 'max-width:560px' },
-        h('label', { class: 'inl' }, onBox, ' 顯示浮水印（畫面與輸出的 PDF／圖片都會有，固定斜 45 度）'),
+        h('label', { class: 'inl' }, onBox, ' 顯示浮水印（畫面與輸出的 PDF／圖片都會有，角度可自訂）'),
         h('label', {}, '標題', title),
         h('label', {}, '內文', body),
         h('p', { class: 'meta' }, '內文可用：{使用者}　{帳號}　{時間}　{日期}（會自動換成登入者與當下時間，方便追查外流來源）'),
         h('label', {}, '不透明度 ', opLab, op),
         h('label', {}, '密集度（1 疏 ～ 5 密） ', dnLab, dn),
+        h('label', {}, '角度（正數往右上斜，負數往右下斜，0 為水平） ', agLab, ag),
         prev,
         h('label', { class: 'inl' }, pBox, ' 防截圖保護：禁止選取／複製／列印、切換程式時畫面遮蔽'),
         h('p', { class: 'meta' }, '提醒：網頁無法真正偵測或阻止 iPad／手機的系統截圖；這些措施用於嚇阻與追查。「輸出 PDF／分享圖片」功能不受影響，但輸出檔同樣帶有浮水印。'),
