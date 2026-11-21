@@ -171,15 +171,32 @@
     const out = h('div');
     const onlyBad = h('input', { type: 'checkbox' });
     let results = null;
+    const mark = async (dates, on) => {
+      const r = results;
+      const { error } = await sb.rpc('recon_mark', { p_store: r.store, p_dates: dates, p_on: on });
+      if (error) { alert('標記失敗：' + error.message); return; }
+      dates.forEach((d) => (on ? r.marked.add(d) : r.marked.delete(d)));
+      APP.logAction(on ? 'recon_mark' : 'recon_unmark', { store: r.store, dates });
+      if (APP.recon.onMark) APP.recon.onMark(r.store, dates, on);
+      paint();
+    };
     const paint = () => {
       if (!results) return;
       const { days, nameOf } = results;
       const bad = days.filter((d) => d.issues.length);
+      const okDays = days.filter((d) => d.date && !d.issues.length && !results.marked.has(d.date));
+      const canMark = APP.canEdit();
       out.replaceChildren(
         h('div', { class: 'msg ' + (bad.length ? 'err' : 'ok') }, bad.length ? `共 ${days.length} 天，${bad.length} 天有異常：${bad.map((d) => d.label).join('、')}` : `共 ${days.length} 天，全部正確 ✓`),
+        canMark && okDays.length ? h('div', { class: 'act' }, h('button', { class: 'primary', onclick: () => mark(okDays.map((d) => d.date), true) }, `全部正確的 ${okDays.length} 天標記為「已對帳」`)) : null,
         h('label', { class: 'inl' }, onlyBad, ' 只顯示異常的日期'),
         ...days.filter((d) => !onlyBad.checked || d.issues.length).map((d) => h('div', { class: 'rday' },
-          h('h4', {}, `${d.label}　`, d.issues.length ? h('span', { class: 'bad' }, `✗ 異常 ${d.issues.length} 項`) : h('span', { class: 'okk' }, '✓ 正確')),
+          h('h4', {}, `${d.label}　`, d.issues.length ? h('span', { class: 'bad' }, `✗ 異常 ${d.issues.length} 項`) : h('span', { class: 'okk' }, '✓ 正確'), results.marked.has(d.date) ? h('span', { class: 'stamp on' }, '已對帳') : null,
+            canMark && d.date ? h('button', { class: 'small', style: 'margin-left:10px', onclick: () => {
+              const on = !results.marked.has(d.date);
+              if (on && d.issues.length && !confirm(`${d.label} 還有 ${d.issues.length} 項異常，確定仍要標記為已對帳？`)) return;
+              mark([d.date], on);
+            } }, results.marked.has(d.date) ? '取消已對帳' : '標記已對帳') : null),
           dayTable(d, nameOf), d.issues.length ? h('ul', { class: 'rissues' }, d.issues.map((t) => h('li', {}, t))) : null)));
     };
     onlyBad.addEventListener('change', paint);
@@ -209,7 +226,8 @@
             else (otherBy[r.report_date] = otherBy[r.report_date] || []).push({ store: r.store, day: rec });
           });
           days.forEach((d) => check(d, sysBy[d.date], nameOf, otherBy[d.date]));
-          results = { days, nameOf };
+          const mk = await sb.from('recon_marks').select('report_date').eq('store', sel.store).gte('report_date', dates[0]).lte('report_date', dates[dates.length - 1]);
+          results = { days, nameOf, store: sel.store, marked: new Set((mk.data || []).map((x) => x.report_date)) };
           APP.logAction('recon', { store: sel.store, days: days.length, bad: days.filter((d) => d.issues.length).length });
           paint();
         } catch (e) { out.replaceChildren(h('div', { class: 'msg err' }, '對帳失敗：' + e.message)); }
@@ -235,5 +253,5 @@
       h('p', { class: 'meta' }, '以上為示意畫面，實際外觀依手機與 LINE 版本而異。LINE 若只能單則拷貝，也可以一則一則拷貝後按「貼上剪貼簿」累加。'),
       ta, h('div', { class: 'act' }, pasteBtn, clearBtn, btn), out);
   }
-  APP.recon = { panel, _t: { parse, check } };
+  APP.recon = { onMark: null, panel, _t: { parse, check } };
 })();

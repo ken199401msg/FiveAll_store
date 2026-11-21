@@ -26,13 +26,23 @@
     const body = h('div', {}, h('p', { class: 'meta' }, '載入中…'));
     mount(...shell('daily', h('h2', {}, '日帳明細'), L.picker(sel, render), body));
     try {
-      const [data, notes, sch] = await Promise.all([L.loadMonth(sel.store, sel.y, sel.m), loadNotes(), L.loadSchedule(sel.store, sel.y, sel.m).catch(() => null)]);
+      const rg = L.monthRange(sel.y, sel.m);
+      const [data, notes, sch, mk] = await Promise.all([L.loadMonth(sel.store, sel.y, sel.m), loadNotes(), L.loadSchedule(sel.store, sel.y, sel.m).catch(() => null),
+        sb.from('recon_marks').select('report_date').eq('store', sel.store).gte('report_date', rg.start).lte('report_date', rg.end)]);
+      marks = new Set((mk.data || []).map((x) => x.report_date));
       if (my !== seq) return;
       body.replaceChildren(...build(data, notes, sch));
     } catch (e) {
       if (my === seq) body.replaceChildren(h('div', { class: 'msg err' }, '讀取失敗：' + e.message));
     }
   }
+
+  let marks = new Set();
+  const stamps = {};
+  APP.recon.onMark = (store, dates, on) => {
+    if (store !== (sel && sel.store)) return;
+    dates.forEach((dt) => { if (on) marks.add(dt); else marks.delete(dt); if (stamps[dt]) stamps[dt].className = 'stamp' + (on ? ' on' : ''); });
+  };
 
   function build(d, notes, sch) {
     const s = d.store;
@@ -62,7 +72,9 @@
     const span = A.length * 3 + 5;
     const rows = d.days.map((day) => {
       const we = day.dow === 0 || day.dow === 6 ? ' we' : '';
-      const tds = [h('td', { class: 'stk' + we }, `${sel.m}/${day.d} 週${L.WEEK[day.dow]}`)];
+      const stamp = h('span', { class: 'stamp' + (marks.has(day.date) ? ' on' : '') }, '已對帳');
+      stamps[day.date] = stamp;
+      const tds = [h('td', { class: 'stk' + we }, `${sel.m}/${day.d} 週${L.WEEK[day.dow]}`, stamp)];
       // 店休：整天沒有業績，整列合併顯示；過去日期沒有日報則標示「無日報」
       if (day.closed) return h('tr', {}, tds, h('td', { class: 'cl', colspan: span }, day.closedType === 'typhoon' ? '店休（颱風）' : '店休'));
       if (!day.has && day.date < todayStr) return h('tr', {}, tds, h('td', { class: 'cl2', colspan: span }, '無日報'));
