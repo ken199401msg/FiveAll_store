@@ -92,7 +92,7 @@
 
   /* ---------- 載入使用者資料 ---------- */
   async function loadProfile(uid) {
-    const { data: p, error } = await sb.from('profiles').select('id,display_name,role,is_active,can_edit').eq('id', uid).maybeSingle();
+    const { data: p, error } = await sb.from('profiles').select('id,display_name,role,is_active,can_edit,can_analysis').eq('id', uid).maybeSingle();
     if (error || !p) return null;
     const { data: s } = await sb.from('user_stores').select('store_name').eq('user_id', uid);
     state.stores = (s || []).map((r) => r.store_name);
@@ -103,7 +103,7 @@
   // 帳務人員只能看：首頁、日帳明細、月結表、行事曆；且需授權（can_edit）才能新增／修改
   const ACCT_PAGES = ['home', 'daily', 'monthly', 'calendar'];
   const canEdit = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager' || (p.role === 'accountant' && !!p.can_edit)); };
-  const canOpen = (k) => !(state.profile.role === 'accountant' && !ACCT_PAGES.includes(k));
+  const canOpen = (k) => !(state.profile.role === 'accountant' && !(ACCT_PAGES.includes(k) || (k === 'analysis' && state.profile.can_analysis)));
   function shell(active, ...content) {
     const p = state.profile;
     const items = [['home', '首頁'], ['daily', '日帳明細'], ['monthly', '月結表'], ['analysis', '分析'], ['schedule', '排班表'], ['calendar', '行事曆']].filter(([k]) => canOpen(k));
@@ -173,6 +173,7 @@
     });
     const active = h('input', { type: 'checkbox', checked: u.is_active, disabled: me });
     const edit = h('input', { type: 'checkbox', checked: u.can_edit, disabled: me });
+    const ana = h('input', { type: 'checkbox', checked: u.can_analysis, disabled: me });
     const msg = h('div');
     const save = h('button', {
       class: 'small',
@@ -183,9 +184,10 @@
           const stores = boxes.map((l) => l.firstChild).filter((c) => c.checked).map((c) => c.value);
           if (stores.join() !== u.stores.join()) await must(sb.rpc('admin_set_stores', { p_user: u.id, p_stores: stores }));
           if (!me && edit.checked !== u.can_edit) await must(sb.rpc('admin_set_can_edit', { p_user: u.id, p_can: edit.checked }));
+          if (!me && ana.checked !== u.can_analysis) await must(sb.rpc('admin_set_can_analysis', { p_user: u.id, p_can: ana.checked }));
           if (!me && active.checked !== u.is_active) await must(sb.rpc('admin_set_active', { p_user: u.id, p_active: active.checked }));
           showMsg(msg, '已儲存', 'ok');
-          u.role = roleSel.value; u.can_edit = edit.checked; u.is_active = active.checked; u.stores = stores;
+          u.role = roleSel.value; u.can_edit = edit.checked; u.can_analysis = ana.checked; u.is_active = active.checked; u.stores = stores;
         } catch (e) { showMsg(msg, '儲存失敗：' + e.message, 'err'); }
         save.disabled = false;
       }
@@ -195,7 +197,7 @@
         h('div', {}, h('span', { class: 'nm' }, u.display_name), h('span', { class: 'badge ' + u.role }, ROLE[u.role]), me ? h('span', { class: 'badge' }, '我') : null,
           h('div', { class: 'em' }, u.email)),
         h('div', { class: 'meta' }, '註冊：' + fmtTime(u.created_at), h('br'), '最近登入：' + fmtTime(u.last_sign_in_at))),
-      h('div', { class: 'row' }, h('label', {}, '角色', roleSel), h('label', {}, active, '啟用'), h('label', {}, edit, '可新增／修改（帳務人員需授權；店長預設可）')),
+      h('div', { class: 'row' }, h('label', {}, '角色', roleSel), h('label', {}, active, '啟用'), h('label', {}, edit, '可新增／修改（帳務需授權；店長預設可）'), h('label', {}, ana, '可看分析（帳務需授權；店長預設可）')),
       h('div', { class: 'row' }, h('span', { class: 'meta' }, '授權店別：'), boxes),
       h('div', { class: 'row' }, save), msg);
   }
