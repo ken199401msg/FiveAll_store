@@ -64,7 +64,7 @@
       const we = day.dow === 0 || day.dow === 6 ? ' we' : '';
       const tds = [h('td', { class: 'stk' + we }, `${sel.m}/${day.d} 週${L.WEEK[day.dow]}`)];
       // 店休：整天沒有業績，整列合併顯示；過去日期沒有日報則標示「無日報」
-      if (day.closed) return h('tr', {}, tds, h('td', { class: 'cl', colspan: span }, '店休'));
+      if (day.closed) return h('tr', {}, tds, h('td', { class: 'cl', colspan: span }, day.closedType === 'typhoon' ? '店休（颱風）' : '店休'));
       if (!day.has && day.date < todayStr) return h('tr', {}, tds, h('td', { class: 'cl2', colspan: span }, '無日報'));
       for (const a of A) {
         const c = day.cells[a];

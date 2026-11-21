@@ -66,8 +66,13 @@
         if (it.status === 'work') { day.amount += a; day.count += c; day.walkin += w; }
       }
     }
-    // 整天沒有業績也沒有來客＝店休（店休日不計入師傅工作日與休假）
-    days.forEach((x) => { x.closed = x.has && x.amount === 0 && x.count === 0; });
+    // 店休日不計入師傅工作日與休假
+    // 店休＝店業績為 0，且當日有師傅狀態為颱風假／國定假日（店休、春節、中秋等）；一般個人休假不算
+    days.forEach((x) => {
+      const st = Object.values(x.cells).map((c) => c.status);
+      x.closed = x.has && x.amount === 0 && x.count === 0 && st.some((v) => v === 'typhoon' || v === 'holiday');
+      x.closedType = st.includes('typhoon') ? 'typhoon' : 'holiday';
+    });
     const tot = {};
     for (const day of days) {
       if (day.closed) continue;
