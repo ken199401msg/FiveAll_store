@@ -182,6 +182,43 @@
     return [settingsPanel(data, reload), h('div', { class: 'act' }, fill, clear), msg, exp, sheet];
   }
 
+  /* ---------- 日曆訂閱連結（Apple／Google 日曆） ---------- */
+  function subscribePanel() {
+    const box = h('div');
+    const msg = h('div');
+    let token = null, notes = false;
+    const base = `${CONFIG.SUPABASE_URL}/functions/v1/calendar-feed`;
+    const url = () => `${base}?store=${encodeURIComponent(sel.store)}&token=${token}${notes ? '&notes=1' : ''}`;
+    async function fetchToken(fn, ask) {
+      if (ask && !confirm('重新產生後，舊的訂閱連結會立即失效，已加入日曆的人需要重新訂閱。確定嗎？')) return;
+      msg.replaceChildren();
+      const { data, error } = await sb.rpc(fn, { p_store: sel.store });
+      if (error) { showMsg(msg, '失敗：' + error.message, 'err'); return; }
+      token = data; APP.logAction(fn === 'calendar_token_reset' ? 'calendar_link_reset' : 'calendar_link_view', { store: sel.store });
+      paint();
+    }
+    function paint() {
+      if (!token) {
+        box.replaceChildren(h('button', { class: 'small', onclick: () => fetchToken('calendar_token_get') }, '顯示訂閱連結'));
+        return;
+      }
+      const input = h('input', { type: 'text', readonly: true, value: url(), onfocus: (e) => e.target.select() });
+      const copyMsg = h('span', { class: 'meta' });
+      box.replaceChildren(
+        h('label', { style: 'margin-top:0' }, h('input', { type: 'checkbox', checked: notes, onchange: (e) => { notes = e.target.checked; paint(); } }), ' 同時包含日帳記事（可能含客訴等內容，請謹慎）'),
+        input,
+        h('div', { class: 'row' },
+          h('button', { class: 'small', onclick: async () => { try { await navigator.clipboard.writeText(input.value); copyMsg.textContent = '已複製'; } catch (e) { input.select(); copyMsg.textContent = '請長按連結後選「拷貝」'; } } }, '複製連結'),
+          h('a', { href: url().replace(/^https:/, 'webcal:'), class: 'small', style: 'padding:7px 12px;border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--ink);font-size:14px' }, '加到 Apple 日曆'),
+          h('button', { class: 'small', onclick: () => fetchToken('calendar_token_reset', true) }, '重新產生連結'), copyMsg),
+        h('p', { class: 'meta' }, 'Apple 日曆：點「加到 Apple 日曆」按訂閱。Google 日曆：到網頁版 Google 日曆，左側「其他日曆」旁的「＋」→「透過網址新增」，貼上上方連結（Google 約每半天到一天才更新一次）。'));
+    }
+    paint();
+    return h('details', {}, h('summary', {}, '加入手機日曆（訂閱連結）'),
+      h('p', { class: 'meta' }, `訂閱後，${sel.store} 的休假、兼職上班與早班師傅會顯示在手機日曆，排班修改後自動更新。拿到連結的人都能看到該店排班，請勿公開轉貼；外流時按「重新產生連結」。`),
+      box, msg);
+  }
+
   /* ---------- 行事曆 ---------- */
   function buildCalendar(data, reload) {
     const { settings, entries, nameOf } = data;
@@ -232,6 +269,6 @@
     const sheet = h('div', { class: 'sheet cal' }, h('h3', {}, title),
       h('div', { class: 'tw' }, h('table', { class: 'calt' }, h('thead', {}, head), h('tbody', {}, rows))), earlyBlock);
     const exp = L.exportBar(() => sheet, () => title, () => ({ page: 'calendar', store: sel.store, month: `${sel.y}-${L.pad(sel.m)}` }));
-    return [h('p', { class: 'meta' }, '行事曆內容來自「排班表」；早班師傅選擇後會自動儲存。'), exp, sheet, msg];
+    return [h('p', { class: 'meta' }, '行事曆內容來自「排班表」；早班師傅選擇後會自動儲存。'), subscribePanel(), exp, sheet, msg];
   }
 })();
