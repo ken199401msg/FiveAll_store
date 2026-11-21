@@ -209,8 +209,14 @@
     const avgDay = hist.work_days ? hist.amount / hist.work_days : 0;
     const estAmount = avgDay * planned;
     const rate = d.rates[person];
-    const est = h('div', {}, table(['歷史平均每日業績', '採用歷史月份', '預計出勤天數', '預估業績'], [[num(avgDay), past.length + ' 個月', planned + ' 天', num(estAmount)]]),
-      h('p', { class: 'meta' }, '公式：歷史總業績 ÷ 歷史總出勤天數 × 本月預計出勤天數（有排班表：本月天數 − 排定休假天數；未排班：預設 26 天）。'));
+    // B預估：（目前業績 ÷ 目前天數）× 本月天數
+    const tw = L.todayTW();
+    const elapsed = (sel.y === tw.y && sel.m === tw.m) ? tw.d : ((sel.y < tw.y || (sel.y === tw.y && sel.m < tw.m)) ? last : 0);
+    const estB = elapsed > 0 ? cur.amount / elapsed * last : null;
+    const est = h('div', {}, h('h4', {}, 'A預估'), table(['歷史平均每日業績', '採用歷史月份', '預計出勤天數', 'A預估業績'], [[num(avgDay), past.length + ' 個月', planned + ' 天', num(estAmount)]]),
+      h('h4', {}, 'B預估'), table(['本月目前業績', '目前天數', '本月天數', 'B預估業績'], [[num(cur.amount), elapsed ? elapsed + ' 天' : '—', last + ' 天', estB == null ? '—' : num(estB)]]),
+      h('p', { class: 'meta' }, 'B公式：（目前業績 ÷ 目前天數）× 本月天數。'),
+      h('p', { class: 'meta' }, 'A公式：歷史總業績 ÷ 歷史總出勤天數 × 本月預計出勤天數（有排班表：本月天數 − 排定休假天數；未排班：預設 26 天）。'));
 
     // 薪資試算：只有超級管理員、帳務可見，且不會出現在輸出的 PDF／圖片
     let salary = null;
@@ -227,7 +233,7 @@
             e.target.disabled = false;
             if (error) showMsg(msg, '儲存失敗：' + error.message, 'err'); else render();
           } }, '儲存比例')),
-        rate != null ? table(['本月目前業績', '抽成比例', '本月薪資', '預估薪資'], [[num(cur.amount), (rate * 100).toFixed(1) + '%', num(cur.amount * rate), num(estAmount * rate)]]) : h('p', { class: 'meta' }, '尚未設定抽成比例'), msg);
+        rate != null ? table(['本月目前業績', '抽成比例', '本月薪資', 'A預估薪資', 'B預估薪資'], [[num(cur.amount), (rate * 100).toFixed(1) + '%', num(cur.amount * rate), num(estAmount * rate), estB == null ? '—' : num(estB * rate)]]) : h('p', { class: 'meta' }, '尚未設定抽成比例'), msg);
     }
 
     // 近 12 個月
