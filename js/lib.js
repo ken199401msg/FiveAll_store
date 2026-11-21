@@ -194,9 +194,9 @@
     const wraps = [el, ...el.querySelectorAll('.tw')];
     const saved = wraps.map((w) => w.style.overflow);
     wraps.forEach((w) => { w.style.overflow = 'visible'; });
-    const mainEl = el.closest ? el.closest('.main') : null; // 輸出時取消字體縮放，確保輸出樣式固定
-    const mainZoom = mainEl ? mainEl.style.zoom : '';
-    if (mainEl) mainEl.style.zoom = '1';
+    const rootSt = document.documentElement.style; // 輸出時還原字體大小，確保輸出樣式固定
+    const fsPrev = rootSt.getPropertyValue('--fs');
+    rootSt.setProperty('--fs', '1');
     const hidden = [...el.querySelectorAll('.noexp')];
     hidden.forEach((x) => { x.style.display = 'none'; });
     el.classList.add('exporting'); // 緊湊大字、不換行、寬度依內容
@@ -207,7 +207,7 @@
       return await window.html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
     } finally {
       unmark();
-      if (mainEl) mainEl.style.zoom = mainZoom;
+      rootSt.setProperty('--fs', fsPrev || '1');
       el.classList.remove('exporting');
       hidden.forEach((x) => { x.style.display = ''; });
       wraps.forEach((w, i) => { w.style.overflow = saved[i]; });

@@ -156,7 +156,7 @@
         h('div', { class: 'who' }, p.display_name, h('span', { class: 'badge ' + p.role }, ROLE[p.role])),
         state.real && state.real.profile.role === 'admin' ? h('select', { class: 'vsel', title: '檢視視角', onchange: (e) => setView(e.target.value) },
           Object.entries(VIEWS).map(([k, v]) => h('option', { value: k, selected: k === curView() }, k === 'self' ? '視角：本人' : '視角：' + v[0]))) : null,
-        h('button', { class: 'small fsb', title: '縮小字體', onclick: () => bump(-0.1) }, 'A−'), h('button', { class: 'small fsb', title: '放大字體', onclick: () => bump(0.1) }, 'A＋'), h('a', { class: 'small pwl', href: '#password' }, '改密碼'), h('button', { class: 'small', onclick: signOut }, '登出')),
+        h('button', { class: 'small fsb', title: '縮小字體', onclick: () => bump(-0.1) }, 'A−'), h('button', { class: 'small fsb', title: '字體預設大小', onclick: () => { fs = 1; applyFs(); } }, '預設'), h('button', { class: 'small fsb', title: '放大字體', onclick: () => bump(0.1) }, 'A＋'), h('a', { class: 'small pwl', href: '#password' }, '改密碼'), h('button', { class: 'small', onclick: signOut }, '登出')),
       updateBadge(),
       h('div', { class: 'nav' }, items.map(([k, label]) =>
         h('a', { href: '#' + k, class: k === active ? 'on' : '' }, label))),

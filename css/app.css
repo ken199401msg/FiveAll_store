@@ -174,5 +174,26 @@ body.veil #app{filter:blur(28px);opacity:.15}
 .sheet .calt .holt{font-size:12px;font-weight:700;color:#c0352b;margin-top:2px}
 .exporting .staffsum{font-size:20px}
 .exporting .calt .holt{font-size:16px}
-.main{zoom:var(--fs,1)}
 .topbar .fsb{font-weight:700;padding:6px 9px}
+
+/* 內容字體大小（A−／標準／A＋）：只放大內容區文字，不縮放版面；輸出時會暫時還原為 1 */
+.main{font-size:calc(16px*var(--fs,1))}
+.main table{font-size:calc(14px*var(--fs,1))}
+.main .sheet table{font-size:calc(13px*var(--fs,1))}
+.main .utbl table{font-size:calc(14px*var(--fs,1))}
+.main .sheet h3{font-size:calc(18px*var(--fs,1))}
+.main h2{font-size:calc(20px*var(--fs,1))}
+.main .blk h4{font-size:calc(16px*var(--fs,1))}
+.main .sheet .calt td.nm{font-size:calc(18px*var(--fs,1))}
+.main .sheet .calt td.nm.sm{font-size:calc(14px*var(--fs,1))}
+.main .sheet .calt .holt{font-size:calc(12px*var(--fs,1))}
+.main .note .c{font-size:calc(16px*var(--fs,1))}
+.main .note .m{font-size:calc(12px*var(--fs,1))}
+.main .kv b{font-size:calc(20px*var(--fs,1))}
+.main .kv span,.main .sum span{font-size:calc(12px*var(--fs,1))}
+.main .sum b{font-size:calc(20px*var(--fs,1))}
+.main .big2{font-size:calc(28px*var(--fs,1))}
+.main .staffsum{font-size:calc(14px*var(--fs,1))}
+.main .meta{font-size:calc(14px*var(--fs,1))}
+.main .tile h3{font-size:calc(17px*var(--fs,1))}
+.main .tile p{font-size:calc(14px*var(--fs,1))}
