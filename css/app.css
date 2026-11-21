@@ -197,3 +197,15 @@ body.veil #app{filter:blur(28px);opacity:.15}
 .main .meta{font-size:calc(14px*var(--fs,1))}
 .main .tile h3{font-size:calc(17px*var(--fs,1))}
 .main .tile p{font-size:calc(14px*var(--fs,1))}
+
+/* 日報對帳 */
+.recon .rshots{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0}
+.recon .rshot{max-width:100%;height:auto}
+.rsteps{padding-left:22px;line-height:1.9;font-weight:600}
+.recon textarea{min-height:170px}
+.rday{margin:12px 0}
+.rday h4{margin:6px 0}
+.rday .bad{color:#c0352b}.rday .okk{color:#1a7f37}
+.main table td.rbad,.main table td.rbad.sm{background:#fdd !important;color:#c0352b;font-weight:700}
+.main table td.sm{font-size:12px;color:#667}
+.rissues{margin:6px 0;padding-left:20px;color:#c0352b;font-weight:600}

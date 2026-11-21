@@ -99,7 +99,7 @@
     paint(notes);
 
     const exp = L.exportBar(() => sheet, () => title, () => ({ page: 'daily', store: sel.store, month: `${sel.y}-${L.pad(sel.m)}` }));
-    return [tiles, leaveBox, APP.canEdit() ? L.orderPanel(d, sel.store, sel.y, sel.m, render) : null, exp, sheet, APP.canEdit() ? addForm(refresh) : null].filter(Boolean);
+    return [tiles, leaveBox, APP.canEdit() ? L.orderPanel(d, sel.store, sel.y, sel.m, render) : null, exp, sheet, APP.canEdit() ? addForm(refresh) : null, APP.recon.panel(() => sel)].filter(Boolean);
   }
 
   /* 預排休假：來自排班表（固定週休與已排的休假） */
