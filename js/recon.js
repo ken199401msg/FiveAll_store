@@ -19,22 +19,32 @@
   const bar = (x, y, w, c) => sv('rect', { x, y, width: w, height: 7, rx: 3, fill: c || '#8e8e93' });
   const chk = (y, on) => sv('circle', { cx: 24, cy: y, r: 9, fill: on ? '#06c755' : 'none', stroke: on ? '#06c755' : '#aaa', 'stroke-width': 2 });
   const hl = (x, y, w, hgt) => sv('rect', { x, y, width: w, height: hgt, rx: 8, fill: 'none', stroke: '#ff3b30', 'stroke-width': 3 });
-  function shot1() { // 長按訊息 → 拷貝
-    return phone('① 長按訊息，點「拷貝」',
-      sv('rect', { x: 20, y: 52, width: 150, height: 40, rx: 10, fill: '#3a3a3c' }), bar(30, 64, 90), bar(30, 78, 60),
-      sv('rect', { x: 60, y: 110, width: 170, height: 80, rx: 10, fill: '#06c755' }), bar(70, 122, 70, '#fff'), bar(70, 136, 120, '#fff'), bar(70, 150, 110, '#fff'), bar(70, 164, 90, '#fff'),
-      sv('rect', { x: 60, y: 204, width: 170, height: 96, rx: 12, fill: '#2c2c2e' }),
-      [['拷貝', 224], ['分享', 250], ['回覆', 276]].map(([t, y]) => sv('text', { x: 76, y: y + 2, 'font-size': 14, fill: '#fff' }, t)),
-      hl(64, 208, 162, 28));
+  function shot1() { // 勾選訊息 → 分享
+    return phone('① 長按 → 分享 → 勾選訊息',
+      chk(70, true), sv('rect', { x: 48, y: 54, width: 170, height: 44, rx: 10, fill: '#06c755' }), bar(58, 66, 100, '#fff'), bar(58, 80, 70, '#fff'),
+      chk(134, true), sv('rect', { x: 48, y: 114, width: 170, height: 44, rx: 10, fill: '#06c755' }), bar(58, 126, 100, '#fff'), bar(58, 140, 70, '#fff'),
+      chk(198, true), sv('rect', { x: 48, y: 178, width: 170, height: 44, rx: 10, fill: '#06c755' }), bar(58, 190, 100, '#fff'), bar(58, 204, 70, '#fff'),
+      chk(256, false), sv('rect', { x: 48, y: 238, width: 170, height: 36, rx: 10, fill: '#3a3a3c' }), bar(58, 252, 90),
+      sv('rect', { x: 14, y: 288, width: 70, height: 28, rx: 8, fill: 'none', stroke: '#777' }), sv('text', { x: 49, y: 307, 'text-anchor': 'middle', 'font-size': 12, fill: '#fff' }, '取消'),
+      sv('rect', { x: 96, y: 288, width: 130, height: 28, rx: 8, fill: '#06c755' }), sv('text', { x: 161, y: 307, 'text-anchor': 'middle', 'font-size': 12, fill: '#fff', 'font-weight': 700 }, '分享 (3)'), hl(94, 286, 134, 32));
   }
-  function shot2() { // 回到本頁：貼上剪貼簿
-    return phone('② 回到本頁，按「貼上」',
-      sv('rect', { x: 16, y: 50, width: 208, height: 150, rx: 8, fill: '#fff' }),
-      bar(26, 64, 120, '#555'), bar(26, 80, 80, '#555'), bar(26, 96, 110, '#555'), bar(26, 112, 90, '#555'),
-      sv('rect', { x: 16, y: 214, width: 96, height: 34, rx: 8, fill: '#12507a' }), sv('text', { x: 64, y: 236, 'text-anchor': 'middle', 'font-size': 13, fill: '#fff', 'font-weight': 700 }, '貼上'),
-      sv('rect', { x: 124, y: 214, width: 100, height: 34, rx: 8, fill: '#06c755' }), sv('text', { x: 174, y: 236, 'text-anchor': 'middle', 'font-size': 13, fill: '#fff', 'font-weight': 700 }, '送出對帳'),
-      hl(12, 210, 104, 42),
-      sv('text', { x: 120, y: 285, 'text-anchor': 'middle', 'font-size': 12, fill: '#ddd' }, '每天一則：拷貝 → 貼上，重複到全部貼完'));
+  function shot2() { // 儲存至記事本
+    return phone('② 選「儲存至記事本」',
+      sv('rect', { x: 8, y: 120, width: 224, height: 202, rx: 16, fill: '#2c2c2e' }),
+      [0, 1, 2, 3].map((i) => sv('circle', { cx: 40 + i * 54, cy: 168, r: 20, fill: '#555' })),
+      [0, 1, 2].map((i) => sv('circle', { cx: 40 + i * 54, cy: 232, r: 20, fill: '#555' })),
+      sv('line', { x1: 14, x2: 226, y1: 268, y2: 268, stroke: '#555' }),
+      [['Keep 筆記', 40], ['儲存至記事本', 110], ['分享至應用程式', 190]].map(([t, x]) => sv('g', {}, sv('rect', { x: x - 14, y: 278, width: 28, height: 22, rx: 5, fill: 'none', stroke: '#aaa' }), sv('text', { x, y: 314, 'text-anchor': 'middle', 'font-size': 9, fill: '#ddd' }, t))),
+      hl(70, 272, 80, 50));
+  }
+  function shot3() { // 記事本貼文：全選拷貝 → 回本頁貼上
+    return phone('③ 開啟記事本貼文，全選並拷貝',
+      sv('rect', { x: 14, y: 46, width: 212, height: 176, rx: 8, fill: '#111', stroke: '#444' }),
+      [0, 1, 2, 3, 4, 5, 6, 7].map((i) => bar(24, 60 + i * 20, 70 + (i % 3) * 30, '#ccc')),
+      sv('rect', { x: 14, y: 236, width: 100, height: 34, rx: 8, fill: '#2c2c2e' }), sv('text', { x: 64, y: 258, 'text-anchor': 'middle', 'font-size': 13, fill: '#fff' }, '全選 → 拷貝'),
+      sv('rect', { x: 126, y: 236, width: 100, height: 34, rx: 8, fill: '#12507a' }), sv('text', { x: 176, y: 258, 'text-anchor': 'middle', 'font-size': 13, fill: '#fff', 'font-weight': 700 }, '回本頁貼上'),
+      hl(10, 232, 108, 42),
+      sv('text', { x: 120, y: 300, 'text-anchor': 'middle', 'font-size': 11, fill: '#ddd' }, '一次就能帶入多天'));
   }
 
   /* ---------- 解析 ---------- */
@@ -202,12 +212,12 @@
     }, '貼上剪貼簿（加在下面）');
     const clearBtn = h('button', { onclick: () => { ta.value = ''; out.replaceChildren(); results = null; } }, '清空');
     const steps = h('ol', { class: 'rsteps' },
-      ['在 LINE 的日報訊息上「長按」', '點「拷貝」（LINE 目前一次只能拷貝一則）', '回到本頁，按下方「貼上剪貼簿」（或在方框內長按貼上）', '換下一天的訊息，重複 ① ②，直到全部貼完', '按「送出對帳」'].map((t) => h('li', {}, t)));
+      ['在 LINE 的日報訊息上「長按」→「分享」', '勾選要對帳的多則日報，按右下「分享」', '選「儲存至記事本」，選記事本後按「貼文」', '開啟剛貼好的記事本貼文，全選文字並「拷貝」', '回到本頁，按下方「貼上剪貼簿」（或在方框內長按貼上）', '按「送出對帳」'].map((t) => h('li', {}, t)));
     return h('details', { class: 'recon' }, h('summary', {}, '日報對帳（貼上 LINE 日報，檢查加總並與系統比對）'),
       h('p', { class: 'meta' }, `店別以上方選擇的「${getSel().store}」為準。格式：姓名 業績 散客 總來客；散客「1+0」會自動加總為 1；最後一行「總」是店業績，會用上面各師傅加總來檢查。`),
       steps,
-      h('div', { class: 'rshots' }, shot1(), shot2()),
-      h('p', { class: 'meta' }, '以上為示意畫面，實際外觀依手機與 LINE 版本而異。'),
+      h('div', { class: 'rshots' }, shot1(), shot2(), shot3()),
+      h('p', { class: 'meta' }, '以上為示意畫面，實際外觀依手機與 LINE 版本而異。LINE 若只能單則拷貝，也可以一則一則拷貝後按「貼上剪貼簿」累加。'),
       ta, h('div', { class: 'act' }, pasteBtn, clearBtn, btn), out);
   }
   APP.recon = { panel, _t: { parse, check } };
