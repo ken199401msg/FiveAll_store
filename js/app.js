@@ -92,7 +92,7 @@
 
   /* ---------- 載入使用者資料 ---------- */
   async function loadProfile(uid) {
-    const { data: p, error } = await sb.from('profiles').select('id,display_name,role,is_active,can_edit,can_analysis').eq('id', uid).maybeSingle();
+    const { data: p, error } = await sb.from('profiles').select('id,display_name,role,is_active,can_edit,can_analysis,data_from').eq('id', uid).maybeSingle();
     if (error || !p) return null;
     const { data: s } = await sb.from('user_stores').select('store_name').eq('user_id', uid);
     state.stores = (s || []).map((r) => r.store_name);
@@ -126,7 +126,7 @@
 
   /* ---------- 版型 ---------- */
   // 帳務人員只能看：首頁、日帳明細、月結表、行事曆；且需授權（can_edit）才能新增／修改
-  const ACCT_PAGES = ['home', 'daily', 'monthly', 'calendar'];
+  const ACCT_PAGES = ['home', 'daily', 'monthly', 'calendar', 'password'];
   const canEdit = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager' || (p.role === 'accountant' && !!p.can_edit)); };
   const canEditCal = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager'); }; // 行事曆：帳務一律不可修改
   const canOpen = (k) => !(state.profile.role === 'accountant' && !(ACCT_PAGES.includes(k) || (k === 'analysis' && state.profile.can_analysis)));
@@ -143,14 +143,14 @@
   function shell(active, ...content) {
     const p = state.profile;
     const items = [['home', '首頁'], ['daily', '日帳明細'], ['monthly', '月結表'], ['analysis', '分析'], ['schedule', '排班表'], ['calendar', '行事曆']].filter(([k]) => canOpen(k));
-    if (p.role === 'admin') items.push(['users', '帳號管理'], ['logs', '操作紀錄']);
+    if (p.role === 'admin') items.push(['users', '帳號管理'], ['wmset', '浮水印'], ['logs', '操作紀錄']);
     return [
       h('div', { class: 'topbar' },
         h('div', { class: 't' }, '五眾店務管理'),
         h('div', { class: 'who' }, p.display_name, h('span', { class: 'badge ' + p.role }, ROLE[p.role])),
         state.real && state.real.profile.role === 'admin' ? h('select', { class: 'vsel', title: '檢視視角', onchange: (e) => setView(e.target.value) },
           Object.entries(VIEWS).map(([k, v]) => h('option', { value: k, selected: k === curView() }, k === 'self' ? '視角：本人' : '視角：' + v[0]))) : null,
-        h('button', { class: 'small', onclick: signOut }, '登出')),
+        h('a', { class: 'small pwl', href: '#password' }, '改密碼'), h('button', { class: 'small', onclick: signOut }, '登出')),
       updateBadge(),
       h('div', { class: 'nav' }, items.map(([k, label]) =>
         h('a', { href: '#' + k, class: k === active ? 'on' : '' }, label))),
@@ -197,50 +197,81 @@
   async function renderUsers() {
     const list = h('div', {}, h('p', { class: 'meta' }, '載入中…'));
     mount(...shell('users', h('h2', {}, '帳號管理'),
-      h('p', { class: 'meta' }, '新註冊的帳號預設為「待開通」。請設定角色；店長需勾選可管理的店別（可多選）。'), list));
+      h('p', { class: 'meta' }, '新註冊的帳號預設為「待開通」。設定角色與店別；「資料起始日」之前的資料該帳號看不到（留空＝不限制）。修改授權後，對方需重新登入才會生效。'), list));
     const { data, error } = await sb.rpc('admin_list_users');
     if (error) { list.replaceChildren(h('div', { class: 'msg err' }, '讀取失敗：' + error.message)); return; }
-    list.replaceChildren(...data.map(userCard));
+    const heads = ['帳號', '角色', ...CONFIG.STORES, '啟用', '可修改', '可看分析', '資料起始日', '', ''];
+    list.replaceChildren(h('div', { class: 'tw utbl' }, h('table', {},
+      h('thead', {}, h('tr', {}, heads.map((t, i) => h('th', { class: i === 0 ? 'l' : '' }, t)))),
+      h('tbody', {}, data.map(userRow)))));
   }
 
-  function userCard(u) {
+  function userRow(u) {
     const me = u.id === state.profile.id;
     const roleSel = h('select', { disabled: me },
       ['pending', 'manager', 'accountant', 'admin'].map((r) => h('option', { value: r, selected: r === u.role }, ROLE[r])));
-    const boxes = CONFIG.STORES.map((s) => {
-      const cb = h('input', { type: 'checkbox', value: s, checked: u.stores.includes(s) });
-      return h('label', {}, cb, s);
-    });
-    const active = h('input', { type: 'checkbox', checked: u.is_active, disabled: me });
-    const edit = h('input', { type: 'checkbox', checked: u.can_edit, disabled: me });
-    const ana = h('input', { type: 'checkbox', checked: u.can_analysis, disabled: me });
-    const msg = h('div');
+    const storeCb = CONFIG.STORES.map((s) => h('input', { type: 'checkbox', value: s, checked: u.stores.includes(s) }));
+    const cbx = (v, dis) => h('input', { type: 'checkbox', checked: v, disabled: dis });
+    const active = cbx(u.is_active, me), edit = cbx(u.can_edit, me), ana = cbx(u.can_analysis, me);
+    const from = h('input', { type: 'date', value: u.data_from || '', disabled: u.role === 'admin' });
+    const msg = h('span', { class: 'meta' });
     const save = h('button', {
       class: 'small',
       onclick: async () => {
-        save.disabled = true; msg.replaceChildren();
+        save.disabled = true; msg.textContent = '';
         try {
           if (!me && roleSel.value !== u.role) await must(sb.rpc('admin_set_role', { p_user: u.id, p_role: roleSel.value }));
-          const stores = boxes.map((l) => l.firstChild).filter((c) => c.checked).map((c) => c.value);
+          const stores = storeCb.filter((c) => c.checked).map((c) => c.value);
           if (stores.join() !== u.stores.join()) await must(sb.rpc('admin_set_stores', { p_user: u.id, p_stores: stores }));
           if (!me && edit.checked !== u.can_edit) await must(sb.rpc('admin_set_can_edit', { p_user: u.id, p_can: edit.checked }));
           if (!me && ana.checked !== u.can_analysis) await must(sb.rpc('admin_set_can_analysis', { p_user: u.id, p_can: ana.checked }));
           if (!me && active.checked !== u.is_active) await must(sb.rpc('admin_set_active', { p_user: u.id, p_active: active.checked }));
-          showMsg(msg, '已儲存', 'ok');
-          u.role = roleSel.value; u.can_edit = edit.checked; u.can_analysis = ana.checked; u.is_active = active.checked; u.stores = stores;
-        } catch (e) { showMsg(msg, '儲存失敗：' + e.message, 'err'); }
+          if ((from.value || null) !== (u.data_from || null)) await must(sb.rpc('admin_set_data_from', { p_user: u.id, p_date: from.value || null }));
+          u.role = roleSel.value; u.can_edit = edit.checked; u.can_analysis = ana.checked; u.is_active = active.checked; u.stores = stores; u.data_from = from.value || null;
+          msg.textContent = '已儲存 ✓';
+        } catch (e) { msg.textContent = '失敗：' + e.message; }
         save.disabled = false;
       }
     }, '儲存');
-    return h('div', { class: 'ucard' },
-      h('div', { class: 'hd' },
-        h('div', {}, h('span', { class: 'nm' }, u.display_name), h('span', { class: 'badge ' + u.role }, ROLE[u.role]), me ? h('span', { class: 'badge' }, '我') : null,
-          h('div', { class: 'em' }, u.email)),
-        h('div', { class: 'meta' }, '註冊：' + fmtTime(u.created_at), h('br'), '最近登入：' + fmtTime(u.last_sign_in_at))),
-      h('div', { class: 'row' }, h('label', {}, '角色', roleSel), h('label', {}, active, '啟用'), h('label', {}, edit, '可新增／修改（帳務需授權；店長預設可）'), h('label', {}, ana, '可看分析（帳務需授權；店長預設可）')),
-      h('div', { class: 'row' }, h('span', { class: 'meta' }, '授權店別：'), boxes),
-      h('div', { class: 'row' }, save), msg);
+    const reset = h('button', {
+      class: 'small', disabled: me, onclick: async () => {
+        const pw = window.prompt(`幫「${u.display_name}」設定新密碼（至少 8 碼）：`);
+        if (pw === null) return;
+        if (pw.length < 8) { msg.textContent = '密碼至少需要 8 碼'; return; }
+        const { error } = await sb.rpc('admin_set_password', { p_user: u.id, p_password: pw });
+        msg.textContent = error ? '失敗：' + error.message : '密碼已更新，請告知對方（對方會被登出）';
+      }
+    }, '重設密碼');
+    return h('tr', {},
+      h('td', { class: 'l' }, h('b', {}, u.display_name), me ? ' (我)' : '', h('div', { class: 'em' }, u.email), h('div', { class: 'em' }, '最近登入：' + fmtTime(u.last_sign_in_at))),
+      h('td', {}, roleSel), storeCb.map((c) => h('td', {}, c)),
+      h('td', {}, active), h('td', {}, edit), h('td', {}, ana), h('td', {}, from),
+      h('td', {}, save, h('div', {}, msg)), h('td', {}, reset));
   }
+
+  /* ---------- 修改自己的密碼（所有帳號） ---------- */
+  function renderPassword() {
+    const msg = h('div');
+    const p1 = h('input', { type: 'password', autocomplete: 'new-password', placeholder: '至少 8 碼' });
+    const p2 = h('input', { type: 'password', autocomplete: 'new-password', placeholder: '再輸入一次' });
+    const btn = h('button', { class: 'primary', type: 'submit' }, '更新密碼');
+    const form = h('form', {
+      onsubmit: async (e) => {
+        e.preventDefault(); msg.replaceChildren();
+        if (p1.value.length < 8) { showMsg(msg, '密碼至少需要 8 碼', 'err'); return; }
+        if (p1.value !== p2.value) { showMsg(msg, '兩次輸入不一致', 'err'); return; }
+        btn.disabled = true;
+        const { error } = await sb.auth.updateUser({ password: p1.value });
+        btn.disabled = false;
+        if (error) { showMsg(msg, '更新失敗：' + error.message, 'err'); return; }
+        logAction('change_password');
+        p1.value = ''; p2.value = '';
+        showMsg(msg, '密碼已更新', 'ok');
+      }
+    }, h('label', {}, '新密碼', p1), h('label', {}, '確認新密碼', p2), btn, msg);
+    mount(...shell('password', h('h2', {}, '修改密碼'), h('div', { class: 'card', style: 'max-width:420px' }, form)));
+  }
+  APP.pages.password = renderPassword;
 
   async function must(promise) {
     const { error } = await promise;
@@ -278,6 +309,7 @@
     if (!p) { renderPending('pending'); return; }
     if (!p.is_active) { renderPending('disabled'); return; }
     if (p.role === 'pending') { renderPending('pending'); return; }
+    if (APP.protect) APP.protect.refresh();
     const page = (location.hash || '#home').slice(1);
     if ((page === 'users' || page === 'logs') && p.role === 'admin') {
       logAction('view_page', { page });

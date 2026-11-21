@@ -197,10 +197,12 @@
     const hidden = [...el.querySelectorAll('.noexp')];
     hidden.forEach((x) => { x.style.display = 'none'; });
     el.classList.add('exporting'); // 緊湊大字、不換行、寬度依內容
+    const unmark = APP.protect ? APP.protect.attach(el) : () => {};
     try {
       await new Promise((r) => setTimeout(r, 50));
       return await window.html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
     } finally {
+      unmark();
       el.classList.remove('exporting');
       hidden.forEach((x) => { x.style.display = ''; });
       wraps.forEach((w, i) => { w.style.overflow = saved[i]; });

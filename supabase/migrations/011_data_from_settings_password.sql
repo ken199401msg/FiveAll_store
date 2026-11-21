@@ -1,0 +1,5 @@
+-- 已套用於資料庫（摘要）：
+-- profiles.data_from（授權起始日）+ app_data_from()；daily_reports / daily_report_items / daily_notes / schedule_entries 的讀取政策加上日期下限
+-- admin_list_users 回傳 data_from；admin_set_data_from(p_user, p_date)
+-- app_settings(key,value)：watermark / protect；admin_set_setting(p_key,p_value)
+-- admin_set_password(p_user, p_password)：超級管理員重設他人密碼（寫入稽核紀錄、登出對方）
