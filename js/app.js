@@ -130,6 +130,16 @@
   const canEdit = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager' || (p.role === 'accountant' && !!p.can_edit)); };
   const canEditCal = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager'); }; // 行事曆：帳務一律不可修改
   const canOpen = (k) => !(state.profile.role === 'accountant' && !(ACCT_PAGES.includes(k) || (k === 'analysis' && state.profile.can_analysis)));
+  /* 資料更新時間：最新一筆日報的日期與寫入時間 */
+  function updateBadge() {
+    const el = h('div', { class: 'upd' }, '資料更新時間：讀取中…');
+    sb.from('daily_reports').select('report_date,created_at').order('created_at', { ascending: false }).limit(1)
+      .then(({ data, error }) => {
+        const r = data && data[0];
+        el.textContent = error || !r ? '資料更新時間：—' : `資料更新時間：${fmtTime(r.created_at)}（最新日報 ${r.report_date}）`;
+      }, () => { el.textContent = '資料更新時間：—'; });
+    return el;
+  }
   function shell(active, ...content) {
     const p = state.profile;
     const items = [['home', '首頁'], ['daily', '日帳明細'], ['monthly', '月結表'], ['analysis', '分析'], ['schedule', '排班表'], ['calendar', '行事曆']].filter(([k]) => canOpen(k));
@@ -141,6 +151,7 @@
         state.real && state.real.profile.role === 'admin' ? h('select', { class: 'vsel', title: '檢視視角', onchange: (e) => setView(e.target.value) },
           Object.entries(VIEWS).map(([k, v]) => h('option', { value: k, selected: k === curView() }, k === 'self' ? '視角：本人' : '視角：' + v[0]))) : null,
         h('button', { class: 'small', onclick: signOut }, '登出')),
+      updateBadge(),
       h('div', { class: 'nav' }, items.map(([k, label]) =>
         h('a', { href: '#' + k, class: k === active ? 'on' : '' }, label))),
       curView() !== 'self' && state.real && state.real.profile.role === 'admin' ? h('div', { class: 'msg info vbar' }, '目前以「' + VIEWS[curView()][0] + '」視角預覽（僅改變畫面，不改變實際權限）。') : null,
