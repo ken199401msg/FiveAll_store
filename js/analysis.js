@@ -187,9 +187,10 @@
     // 本月休假天數（取自排班表）
     const scheds = await Promise.all(d.stores.map((s) => L.loadSchedule(s, sel.y, sel.m).catch(() => null)));
     let leaveDays = 0;
-    scheds.forEach((sc) => { if (sc) for (const [k, v] of sc.entries) if (v === 'leave' && k.split('|')[1] === person) leaveDays++; });
+    let hasSched = false;
+    scheds.forEach((sc) => { if (sc && sc.entries.size) hasSched = true; if (sc) for (const [k, v] of sc.entries) if (v === 'leave' && k.split('|')[1] === person) leaveDays++; });
     const { last } = L.monthRange(sel.y, sel.m);
-    const planned = Math.max(0, last - leaveDays);
+    const planned = hasSched ? Math.max(0, last - leaveDays) : 26; // 本月尚未排休假表：預設 26 天
 
     // 與過去 3 個月平均比較
     const cmp = (name, a, b, isPct) => {
@@ -201,7 +202,7 @@
     const CMP = past3.length ? table(['指標', `過去${past3.length}月平均`, '本月', '增減', '成長／衰退'],
       [cmp('業績', p3.amount / n3, cur.amount), cmp('來客', p3.cnt / n3, cur.cnt), cmp('指定', p3.designated / n3, cur.designated), cmp('指定率', r3, rc, true)])
       : h('p', { class: 'meta' }, '沒有過去月份資料可比較');
-    const info = h('p', { class: 'meta' }, `比較期間：${past3.length ? past3.join('、') : '—'}　｜　本月排定休假 ${leaveDays} 天（來自排班表）　｜　本月預計出勤 ${planned} 天`);
+    const info = h('p', { class: 'meta' }, `比較期間：${past3.length ? past3.join('、') : '—'}　｜　${hasSched ? `本月排定休假 ${leaveDays} 天（來自排班表）` : '本月尚未排班，預設出勤 26 天'}　｜　本月預計出勤 ${planned} 天`);
 
     // 本月預估：歷史平均每日業績 × 預計出勤天數
     const hist = sumRows(past.map((k) => byM.get(k)));
@@ -209,7 +210,7 @@
     const estAmount = avgDay * planned;
     const rate = d.rates[person];
     const est = h('div', {}, table(['歷史平均每日業績', '採用歷史月份', '預計出勤天數', '預估業績'], [[num(avgDay), past.length + ' 個月', planned + ' 天', num(estAmount)]]),
-      h('p', { class: 'meta' }, '公式：歷史總業績 ÷ 歷史總出勤天數 × 本月預計出勤天數（本月天數 − 排班表休假天數）。'));
+      h('p', { class: 'meta' }, '公式：歷史總業績 ÷ 歷史總出勤天數 × 本月預計出勤天數（有排班表：本月天數 − 排定休假天數；未排班：預設 26 天）。'));
 
     // 薪資試算：只有超級管理員、帳務可見，且不會出現在輸出的 PDF／圖片
     let salary = null;
