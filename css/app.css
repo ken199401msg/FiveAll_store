@@ -165,3 +165,12 @@ body.protect{-webkit-user-select:none;user-select:none;-webkit-touch-callout:non
 body.protect input,body.protect textarea{-webkit-user-select:text;user-select:text}
 body.veil #app{filter:blur(28px);opacity:.15}
 @media print{body.protect #app{display:none !important}body.protect::before{content:"此頁面禁止列印";display:block;padding:40px;font-size:24px}}
+
+/* 排班人數與國定假日 */
+.staffsum{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:14px;font-weight:600;margin:0 0 8px}
+.staffsum .bad{color:#c0352b}.staffsum .okk{color:#1a7f37}
+.sheet td.stk.low{color:#c0352b;background:#fdecea;font-weight:700}
+.sheet td.holc{color:#c0352b;font-weight:700;white-space:nowrap;text-align:center}
+.sheet .calt .holt{font-size:12px;font-weight:700;color:#c0352b;margin-top:2px}
+.exporting .staffsum{font-size:20px}
+.exporting .calt .holt{font-size:16px}

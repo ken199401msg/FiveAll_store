@@ -98,19 +98,29 @@
 
     const countTds = [];
     const footWork = {}, footLeave = {};
+    const dateTd = {};
+    const sumEl = h('div', { class: 'staffsum' });
     function recalc() {
+      let short = 0;
       countTds.forEach(({ d, dow, td }) => {
         const date = dstr(d);
         const n = roster.filter((a) => working(date, a)).length;
-        const need = dow === 0 || dow === 6 ? settings.weekend_staff : settings.weekday_staff;
-        td.textContent = String(n);
+        const need = dow === 0 || dow === 6 || HOL.is(date) ? settings.weekend_staff : settings.weekday_staff;
+        td.textContent = need > 0 ? `${n}／${need}` : String(n);
         td.className = 'cnt' + (need > 0 && n < need ? ' low' : '');
+        if (dateTd[d]) dateTd[d].classList.toggle('low', need > 0 && n < need);
+        if (n < need) short++;
       });
       roster.forEach((a) => {
         let w = 0, lv = 0;
         for (let d = 1; d <= last; d++) { if (working(dstr(d), a)) w++; if (entries.get(`${dstr(d)}|${a}`) === 'leave') lv++; }
         footWork[a].textContent = String(w); footLeave[a].textContent = String(lv);
       });
+      const part = roster.filter(isPart).length;
+      sumEl.replaceChildren(
+        h('span', {}, `店內師傅 ${roster.length} 人，兼職 ${part} 人 → 全職 ${roster.length - part} 人`),
+        h('span', {}, `平日維持 ${settings.weekday_staff || '—'} 人`), h('span', {}, `假日／國定假日維持 ${settings.weekend_staff || '—'} 人`),
+        short ? h('span', { class: 'bad' }, `人數不足 ${short} 天（紅色）`) : (settings.weekday_staff || settings.weekend_staff ? h('span', { class: 'okk' }, '人數皆達標') : null));
     }
 
     function cell(d, a, we) {
@@ -136,7 +146,7 @@
       return td;
     }
 
-    const head = h('tr', {}, h('th', { class: 'l stk' }, '日期'),
+    const head = h('tr', {}, h('th', { class: 'l stk' }, '日期'), h('th', {}, '國定假日'),
       roster.map((a) => h('th', {}, nameOf(a) + (isPart(a) ? '（兼）' : ''))), h('th', {}, '當日上班人數'));
     const rows = [];
     for (let d = 1; d <= last; d++) {
@@ -144,10 +154,13 @@
       const we = dow === 0 || dow === 6 ? 'we' : '';
       const cnt = h('td', {});
       countTds.push({ d, dow, td: cnt });
-      rows.push(h('tr', {}, h('td', { class: ('stk ' + we).trim() }, `${sel.m}/${d} 週${L.WEEK[dow]}`), roster.map((a) => cell(d, a, we)), cnt));
+      const hn = HOL.name(dstr(d));
+      const dtd = h('td', { class: ('stk ' + we).trim() }, `${sel.m}/${d} 週${L.WEEK[dow]}`);
+      dateTd[d] = dtd;
+      rows.push(h('tr', {}, dtd, h('td', { class: 'holc' }, hn), roster.map((a) => cell(d, a, we)), cnt));
     }
-    const fw = h('tr', { class: 'tot' }, h('td', { class: 'stk' }, '上班天數'), roster.map((a) => (footWork[a] = h('td', {}))), h('td', {}));
-    const fl = h('tr', { class: 'tot' }, h('td', { class: 'stk' }, '休假天數'), roster.map((a) => (footLeave[a] = h('td', {}))), h('td', {}));
+    const fw = h('tr', { class: 'tot' }, h('td', { class: 'stk' }, '上班天數'), h('td', {}), roster.map((a) => (footWork[a] = h('td', {}))), h('td', {}));
+    const fl = h('tr', { class: 'tot' }, h('td', { class: 'stk' }, '休假天數'), h('td', {}), roster.map((a) => (footLeave[a] = h('td', {}))), h('td', {}));
     recalc();
 
     const msg = h('div');
@@ -176,7 +189,7 @@
       }
     }, '全部清除');
 
-    const sheet = h('div', { class: 'sheet' }, h('h3', {}, title),
+    const sheet = h('div', { class: 'sheet' }, h('h3', {}, title), sumEl,
       h('div', { class: 'tw' }, h('table', {}, h('thead', {}, head), h('tbody', {}, rows), h('tfoot', {}, fw, fl))));
     const exp = L.exportBar(() => sheet, () => title, () => ({ page: 'schedule', store: sel.store, month: `${sel.y}-${L.pad(sel.m)}` }));
     return [settingsPanel(data, reload), h('div', { class: 'act' }, fill, clear), msg, exp, sheet];
@@ -243,7 +256,7 @@
       rows.push(
         h('tr', { class: 'wkstart' }, h('th', { class: 'rl' }, '標籤'), days.map((d, c) => h('td', { class: ('dl ' + tdc(c)).trim() }, d ? `${sel.m}/${d}` : ''))),
         h('tr', {}, h('th', { class: 'rl' }, '休假'), days.map((d, c) => h('td', { class: ('nm ' + tdc(c)).trim() }, d ? ((byDate.get(dstr(d)) || { leave: [] }).leave.map((a) => h('div', {}, nameOf(a)))) : ''))),
-        h('tr', {}, h('th', { class: 'rl' }, '上班'), days.map((d, c) => h('td', { class: ('nm sm ' + tdc(c)).trim() }, d ? ((byDate.get(dstr(d)) || { work: [] }).work.map((a) => h('div', {}, nameOf(a)))) : ''))));
+        h('tr', {}, h('th', { class: 'rl' }, '上班'), days.map((d, c) => h('td', { class: ('nm sm ' + tdc(c)).trim() }, d ? [((byDate.get(dstr(d)) || { work: [] }).work.map((a) => h('div', {}, nameOf(a)))), HOL.is(dstr(d)) ? h('div', { class: 'holt' }, HOL.name(dstr(d))) : null] : ''))));
     }
     const head = h('tr', {}, h('th', { class: 'rl' }, ''), L.WEEK.map((t, c) => h('th', { class: c === 0 || c === 6 ? 'we' : '' }, '週' + t)));
 
