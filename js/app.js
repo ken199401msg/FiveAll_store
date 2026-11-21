@@ -4,9 +4,9 @@
   const sb = window.supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
   const app = document.getElementById('app');
   const ROLE = { admin: '超級管理員', manager: '店長', accountant: '帳務人員', pending: '待開通' };
-  const state = { profile: null, stores: [] };
+  const state = { profile: null, stores: [], real: null };
   // 提供給各頁面模組使用
-  const APP = window.APP = { sb, h, state, mount, shell, fmtTime, showMsg, logAction, ROLE, pages: {}, canEdit: () => canEdit() };
+  const APP = window.APP = { sb, h, state, mount, shell, fmtTime, showMsg, logAction, ROLE, pages: {}, canEdit: () => canEdit(), canEditCal: () => canEditCal() };
 
   /* ---------- 小工具（一律用 textContent，避免 XSS） ---------- */
   function h(tag, attrs, ...kids) {
@@ -96,13 +96,39 @@
     if (error || !p) return null;
     const { data: s } = await sb.from('user_stores').select('store_name').eq('user_id', uid);
     state.stores = (s || []).map((r) => r.store_name);
-    return p;
+    state.real = { profile: p, stores: state.stores.slice() };
+    return applyView(p);
+  }
+
+  /* 超級管理員「檢視視角」：只改變畫面呈現（預覽他人看到的樣子），資料權限仍是管理員本人 */
+  const VIEWS = {
+    self: ['本人（超級管理員）'],
+    'mgr:五健': ['店長｜五健', { role: 'manager' }, ['五健']],
+    'mgr:五順': ['店長｜五順', { role: 'manager' }, ['五順']],
+    'mgr:all': ['店長｜五健＋五順', { role: 'manager' }, ['五健', '五順']],
+    'acc:ro': ['帳務｜僅檢視', { role: 'accountant', can_edit: false, can_analysis: false }],
+    'acc:edit': ['帳務｜已授權修改', { role: 'accountant', can_edit: true, can_analysis: false }],
+    'acc:full': ['帳務｜授權修改＋分析', { role: 'accountant', can_edit: true, can_analysis: true }]
+  };
+  function curView() { try { const v = sessionStorage.getItem('viewAs'); return VIEWS[v] ? v : 'self'; } catch (e) { return 'self'; } }
+  function applyView(p) {
+    if (!p || p.role !== 'admin') return p;
+    const v = VIEWS[curView()];
+    if (!v[1]) { state.stores = state.real.stores.slice(); return p; }
+    state.stores = (v[2] || []).slice();
+    return Object.assign({}, p, v[1]);
+  }
+  function setView(k) {
+    try { sessionStorage.setItem('viewAs', k); } catch (e) { /* ignore */ }
+    state.profile = applyView(state.real.profile);
+    route();
   }
 
   /* ---------- 版型 ---------- */
   // 帳務人員只能看：首頁、日帳明細、月結表、行事曆；且需授權（can_edit）才能新增／修改
   const ACCT_PAGES = ['home', 'daily', 'monthly', 'calendar'];
   const canEdit = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager' || (p.role === 'accountant' && !!p.can_edit)); };
+  const canEditCal = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager'); }; // 行事曆：帳務一律不可修改
   const canOpen = (k) => !(state.profile.role === 'accountant' && !(ACCT_PAGES.includes(k) || (k === 'analysis' && state.profile.can_analysis)));
   function shell(active, ...content) {
     const p = state.profile;
@@ -112,11 +138,14 @@
       h('div', { class: 'topbar' },
         h('div', { class: 't' }, '五眾店務管理'),
         h('div', { class: 'who' }, p.display_name, h('span', { class: 'badge ' + p.role }, ROLE[p.role])),
+        state.real && state.real.profile.role === 'admin' ? h('select', { class: 'vsel', title: '檢視視角', onchange: (e) => setView(e.target.value) },
+          Object.entries(VIEWS).map(([k, v]) => h('option', { value: k, selected: k === curView() }, k === 'self' ? '視角：本人' : '視角：' + v[0]))) : null,
         h('button', { class: 'small', onclick: signOut }, '登出')),
       h('div', { class: 'nav' }, items.map(([k, label]) =>
         h('a', { href: '#' + k, class: k === active ? 'on' : '' }, label))),
+      curView() !== 'self' && state.real && state.real.profile.role === 'admin' ? h('div', { class: 'msg info vbar' }, '目前以「' + VIEWS[curView()][0] + '」視角預覽（僅改變畫面，不改變實際權限）。') : null,
       h('div', { class: 'main' }, content)
-    ];
+    ].filter(Boolean);
   }
 
   function renderPending(reason) {

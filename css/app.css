@@ -146,3 +146,6 @@ input[type=date]{padding:9px 10px;border:1px solid #cfd6df;border-radius:10px;fo
 .ana.exporting .meta{font-size:24px;line-height:1.5}
 .ana.exporting .meta,.ana.exporting .blk p{white-space:normal}
 .ana.exporting .charts{grid-template-columns:1fr}
+.topbar .vsel{width:auto;max-width:170px;padding:5px 6px;font-size:13px;background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)}
+.topbar .vsel option{color:#000}
+.vbar{margin:8px 16px 0}
