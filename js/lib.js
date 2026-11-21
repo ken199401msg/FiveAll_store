@@ -197,7 +197,8 @@
     const hidden = [...el.querySelectorAll('.noexp')];
     hidden.forEach((x) => { x.style.display = 'none'; });
     el.classList.add('exporting'); // 緊湊大字、不換行、寬度依內容
-    const unmark = APP.protect ? APP.protect.attach(el) : () => {};
+    const noWm = / cal\b/.test(' ' + el.className); // 行事曆輸出不加浮水印
+    const unmark = APP.protect && !noWm ? APP.protect.attach(el) : () => {};
     try {
       await new Promise((r) => setTimeout(r, 50));
       return await window.html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
