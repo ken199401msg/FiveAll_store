@@ -89,7 +89,7 @@
   }
 
   /* ---------- 檢查 ---------- */
-  function check(day, sysDay, nameOf) {
+  function check(day, sysDay, nameOf, others) {
     const issues = [];
     const work = day.rows.filter((r) => r.status === 'work');
     const sum = work.reduce((s, r) => ({ a: s.a + r.amount, w: s.w + r.walkin, c: s.c + r.count }), { a: 0, w: 0, c: 0 });
@@ -116,9 +116,17 @@
     else {
       const items = sysDay.items;
       day.rows.forEach((r) => {
-        const it = items[r.alias];
+        let it = items[r.alias];
+        // 師傅的業績可能記在其他店（例如軒）：本店沒有時，到其他店同一天找
+        if (r.status === 'work' && (!it || it.status !== 'work')) {
+          const o = (others || []).find((x) => x.day && x.day.items[r.alias] && x.day.items[r.alias].status === 'work');
+          if (o) { it = o.day.items[r.alias]; r.fromStore = o.store; }
+        }
         r.sysItem = it || null;
-        if (!it) { if (!r.bad) issues.push(`${nameOf(r.alias)}：系統沒有這位師傅的資料`); r.flag = Object.assign(r.flag || {}, { a: true }); return; }
+        if (!it) {
+          if (r.status === 'work' && !r.bad) { r.flag = Object.assign(r.flag || {}, { a: true }); issues.push(`${nameOf(r.alias)}：LINE 有業績 ${num(r.amount)}，系統本店與其他店都找不到`); }
+          return;
+        }
         if (r.status === 'work') {
           r.flag = r.flag || {};
           if (it.status !== 'work') { r.flag.a = true; issues.push(`${nameOf(r.alias)}：LINE 有業績，系統為「${L.STATUS[it.status] || it.status}」`); return; }
@@ -128,7 +136,10 @@
         } else if (it.status === 'work') { r.flag = { a: true }; issues.push(`${nameOf(r.alias)}：LINE 為「${r.text}」，系統有業績 ${num(it.amount)}`); }
       });
       Object.keys(items).forEach((al) => { if (items[al].status === 'work' && !day.rows.some((r) => r.alias === al)) issues.push(`${nameOf(al)}：系統有業績 ${num(items[al].amount)}，LINE 沒有這一行`); });
-      if (day.total && sysDay.total.amount !== day.total.amount) { day.bad.sysA = true; issues.push(`店業績 LINE ${num(day.total.amount)}／系統 ${num(sysDay.total.amount)}`); }
+      const moved = day.rows.filter((r) => r.fromStore && r.sysItem).reduce((a, r) => a + r.sysItem.amount, 0); // 記在其他店、但 LINE 算在本店的業績
+      day.sysTotal = sysDay.total.amount + moved;
+      day.movedAmt = moved;
+      if (day.total && day.sysTotal !== day.total.amount) { day.bad.sysA = true; issues.push(`店業績 LINE ${num(day.total.amount)}／系統 ${num(day.sysTotal)}${moved ? `（含記在其他店的 ${num(moved)}）` : ''}`); }
     }
     day.issues = issues;
     return day;
@@ -139,14 +150,14 @@
     const c = (v, flag) => ({ t: v, c: flag ? 'rbad' : '' });
     const body = day.rows.map((r) => {
       if (r.bad) return [nameOf(r.alias), c(num(r.amount), true), c('?', true), c('?', true), ''];
-      if (r.status === 'off') return [nameOf(r.alias), { t: r.text, c: (r.flag && r.flag.a) ? 'rbad' : 'lvc' }, '', '', r.sysItem && r.sysItem.status !== 'work' ? '' : (r.flag ? '系統有業績' : '')];
+      if (r.status === 'off') return [nameOf(r.alias), { t: r.text, c: (r.flag && r.flag.a) ? 'rbad' : 'lvc' }, '', '', r.flag && r.flag.a ? '系統有業績' : ''];
       const f = r.flag || {};
       const s = r.sysItem;
-      const sysT = s && s.status === 'work' ? `系統 ${num(s.amount)}／${s.walkin}／${s.count}` : (s ? `系統：${L.STATUS[s.status] || s.status}` : '系統：無');
+      const sysT = s && s.status === 'work' ? `系統${r.fromStore ? '（' + r.fromStore + '）' : ''} ${num(s.amount)}／${s.walkin}／${s.count}` : (s ? `系統：${L.STATUS[s.status] || s.status}` : '系統：無');
       return [nameOf(r.alias), c(num(r.amount), f.a), c(r.walkinRaw && r.walkinRaw.includes('+') ? `${r.walkinRaw}=${r.walkin}` : r.walkin, f.w), c(r.count, f.c), day.sys ? { t: sysT, c: f.a || f.w || f.c ? 'rbad sm' : 'sm' } : ''];
     });
     const sumRow = ['加總', c(num(day.sum.a), day.bad.sumA), c(day.sum.w, day.bad.sumW), c(day.sum.c, day.bad.sumC), ''];
-    const tot = day.total ? ['店業績（總）', c(num(day.total.amount), day.bad.sumA || day.bad.sysA), c(day.total.walkin, day.bad.sumW), c(day.total.count, day.bad.sumC), day.sys ? { t: `系統 ${num(day.sys.total.amount)}`, c: day.bad.sysA ? 'rbad sm' : 'sm' } : ''] : ['店業績（總）', c('缺', true), '', '', ''];
+    const tot = day.total ? ['店業績（總）', c(num(day.total.amount), day.bad.sumA || day.bad.sysA), c(day.total.walkin, day.bad.sumW), c(day.total.count, day.bad.sumC), day.sys ? { t: `系統 ${num(day.sysTotal != null ? day.sysTotal : day.sys.total.amount)}${day.movedAmt ? '（含其他店 ' + num(day.movedAmt) + '）' : ''}`, c: day.bad.sysA ? 'rbad sm' : 'sm' } : ''] : ['店業績（總）', c('缺', true), '', '', ''];
     const cell = (v, i) => { const o = v && typeof v === 'object' ? v : { t: v }; return h('td', { class: ((i === 0 ? 'l ' : '') + (o.c || '')).trim() }, o.t); };
     return h('div', { class: 'tw' }, h('table', {},
       h('thead', {}, h('tr', {}, ['師傅', '業績', '散客', '總來客', day.sys ? '系統（業績／散客／來客）' : ''].map((t, i) => h('th', { class: i === 0 ? 'l' : '' }, t)))),
@@ -183,17 +194,19 @@
           if (!days.length) { out.replaceChildren(h('div', { class: 'msg err' }, '沒有讀到日期行（例如「11/14」）。請確認貼上的內容。')); btn.disabled = false; return; }
           const dates = days.map((d) => d.date).filter(Boolean).sort();
           if (!dates.length) { out.replaceChildren(h('div', { class: 'msg err' }, '沒有讀到日期行。')); btn.disabled = false; return; }
-          const { data, error } = await sb.from('daily_reports').select('report_date,total_amount,daily_report_items(name,status,amount,total_count,unfulfilled)')
-            .eq('store', sel.store).gte('report_date', dates[0]).lte('report_date', dates[dates.length - 1]);
+          const { data, error } = await sb.from('daily_reports').select('store,report_date,total_amount,daily_report_items(name,status,amount,total_count,unfulfilled)')
+            .gte('report_date', dates[0]).lte('report_date', dates[dates.length - 1]);
           if (error) throw new Error(error.message);
-          const sysBy = {};
+          const sysBy = {}, otherBy = {};
           (data || []).forEach((r) => {
             const items = {};
             let tot = 0;
             r.daily_report_items.forEach((it) => { items[it.name] = { status: it.status, amount: Number(it.amount || 0), count: Number(it.total_count || 0), walkin: Number(it.unfulfilled || 0) }; if (it.status === 'work') tot += Number(it.amount || 0); });
-            sysBy[r.report_date] = { items, total: { amount: tot } };
+            const rec = { items, total: { amount: tot } };
+            if (r.store === sel.store) sysBy[r.report_date] = rec;
+            else (otherBy[r.report_date] = otherBy[r.report_date] || []).push({ store: r.store, day: rec });
           });
-          days.forEach((d) => check(d, sysBy[d.date], nameOf));
+          days.forEach((d) => check(d, sysBy[d.date], nameOf, otherBy[d.date]));
           results = { days, nameOf };
           APP.logAction('recon', { store: sel.store, days: days.length, bad: days.filter((d) => d.issues.length).length });
           paint();
