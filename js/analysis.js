@@ -247,10 +247,13 @@
     // 本月日業績明細
     const monthData = await Promise.all(d.stores.map((s) => L.loadMonth(s, sel.y, sel.m).then((x) => ({ s, x })).catch(() => null)));
     const drows = [];
-    monthData.forEach((md) => { if (!md) return; md.x.days.forEach((day) => { const c = day.cells[person]; if (c && c.status === 'work' && !day.closed) drows.push({ date: day.date, store: md.s, ...c }); }); });
+    monthData.forEach((md) => { if (!md) return; md.x.days.forEach((day) => { const c = day.cells[person]; if (c && !day.closed) drows.push({ date: day.date, store: md.s, ...c }); }); });
     drows.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.store.localeCompare(b.store)));
+    const isW = (r) => r.status === 'work';
     const D = drows.length ? table(['日期', '店別', '業績', '來客', '指定', '散客', '客單價'],
-      drows.map((r) => [r.date.slice(5).replace('-', '/'), r.store, num(r.amount), r.count, r.designated, r.walkin, num(r.count ? r.amount / r.count : 0)])) : h('p', { class: 'meta' }, '本月尚無日業績');
+      drows.map((r) => isW(r)
+        ? [r.date.slice(5).replace('-', '/'), r.store, num(r.amount), r.count, r.designated, r.walkin, num(r.count ? r.amount / r.count : 0)]
+        : [r.date.slice(5).replace('-', '/'), r.store, h('span', { style: 'color:#c0392b' }, L.STATUS[r.status] || r.status), '', '', '', ''])) : h('p', { class: 'meta' }, '本月尚無日業績');
 
     const sheet = h('div', { class: 'sheet ana' }, h('h3', {}, title), info,
       section('本月績效與過去平均比較', CMP), salary, section('本月預估', est),
