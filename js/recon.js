@@ -57,7 +57,7 @@
     for (const raw of clean.split(/\r?\n/)) {
       const line = raw.trim();
       if (!line) continue;
-      const dm = line.match(/^(\d{1,2})\/(\d{1,2})(?!\d)(?![-~–])(?:\s*[（(][^)）]*[)）])?\s*(?:未)?\s*(?:共)?\s*$/);
+      const dm = line.match(/^(\d{1,2})\s*\/\s*(\d{1,2})(?!\d)(?![-~–])(?:\s*[（(][^)）]*[)）])?\s*(?:未)?\s*(?:共)?\s*$/);
       if (dm) {
         const mo = Number(dm[1]), da = Number(dm[2]);
         let y = sel.y;
