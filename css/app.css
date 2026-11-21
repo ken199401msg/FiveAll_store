@@ -1,0 +1,53 @@
+:root{--bg:#f4f6f8;--card:#fff;--ink:#1d2733;--sub:#667085;--line:#e3e8ee;--brand:#12507a;--brand2:#1d6fa5;--ok:#1a7f4b;--warn:#b54708;--err:#c0352b;--r:12px}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;font-size:16px;line-height:1.5}
+.boot{text-align:center;margin-top:30vh;color:var(--sub)}
+.auth{max-width:420px;margin:0 auto;padding:max(24px,env(safe-area-inset-top)) 20px 40px}
+.brand{text-align:center;margin:28px 0 20px}
+.brand h1{margin:0;font-size:26px;color:var(--brand)}
+.brand p{margin:4px 0 0;color:var(--sub);font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:20px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+label{display:block;font-size:14px;font-weight:600;margin:14px 0 6px}
+input[type=email],input[type=password],input[type=text],select{width:100%;padding:12px;border:1px solid #cfd6df;border-radius:10px;font-size:16px;background:#fff}
+input:focus,select:focus{outline:2px solid var(--brand2);outline-offset:0;border-color:var(--brand2)}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:#fff;padding:10px 14px;color:var(--ink)}
+button.primary{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600;width:100%;padding:13px;margin-top:20px}
+button.primary:disabled{opacity:.6}
+button.small{padding:7px 12px;font-size:14px}
+button.link{border:0;background:none;color:var(--brand2);padding:0;text-decoration:underline}
+.switch{text-align:center;margin-top:16px;font-size:14px;color:var(--sub)}
+.msg{margin-top:14px;padding:10px 12px;border-radius:10px;font-size:14px}
+.msg.err{background:#fdecea;color:var(--err)}
+.msg.ok{background:#e7f6ee;color:var(--ok)}
+.msg.info{background:#eaf3fb;color:var(--brand)}
+.center{text-align:center}
+.big{font-size:48px;margin:6px 0}
+.topbar{position:sticky;top:0;z-index:5;background:var(--brand);color:#fff;display:flex;align-items:center;gap:12px;padding:10px 16px;padding-top:max(10px,env(safe-area-inset-top))}
+.topbar .t{font-weight:700;flex:1}
+.topbar .who{font-size:13px;opacity:.9;text-align:right}
+.topbar button{background:rgba(255,255,255,.15);border-color:rgba(255,255,255,.3);color:#fff}
+.nav{display:flex;gap:6px;overflow-x:auto;padding:10px 12px;background:#fff;border-bottom:1px solid var(--line)}
+.nav a{white-space:nowrap;padding:8px 14px;border-radius:999px;color:var(--ink);text-decoration:none;font-size:15px}
+.nav a.on{background:var(--brand);color:#fff}
+.main{max-width:1000px;margin:0 auto;padding:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.tile{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.tile h3{margin:0 0 4px;font-size:17px}
+.tile p{margin:0;color:var(--sub);font-size:14px}
+.tile.off{opacity:.55}
+.badge{display:inline-block;font-size:12px;padding:2px 8px;border-radius:999px;background:#eef2f6;color:var(--sub);margin-left:6px}
+.badge.admin{background:#e8f0fe;color:#1a4fb4}.badge.manager{background:#e7f6ee;color:var(--ok)}.badge.accountant{background:#fff4e5;color:var(--warn)}.badge.pending{background:#fdecea;color:var(--err)}
+h2{margin:6px 0 14px;font-size:20px}
+.ucard{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.ucard .hd{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.ucard .nm{font-weight:700}
+.ucard .em,.ucard .meta{font-size:13px;color:var(--sub)}
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.row label{margin:0;font-weight:500;display:flex;align-items:center;gap:6px}
+.row select{width:auto;padding:8px}
+.tabs{display:flex;gap:8px;margin-bottom:12px}
+.tabs button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.tw{overflow-x:auto;background:#fff;border:1px solid var(--line);border-radius:var(--r)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{background:#f7f9fb;position:sticky;top:0}
