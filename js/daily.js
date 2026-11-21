@@ -99,7 +99,7 @@
     paint(notes);
 
     const exp = L.exportBar(() => sheet, () => title, () => ({ page: 'daily', store: sel.store, month: `${sel.y}-${L.pad(sel.m)}` }));
-    return [tiles, leaveBox, L.orderPanel(d, sel.store, sel.y, sel.m, render), exp, sheet, addForm(refresh)];
+    return [tiles, leaveBox, APP.canEdit() ? L.orderPanel(d, sel.store, sel.y, sel.m, render) : null, exp, sheet, APP.canEdit() ? addForm(refresh) : null].filter(Boolean);
   }
 
   /* 預排休假：來自排班表（固定週休與已排的休假） */
@@ -126,7 +126,7 @@
       h('div', {},
         h('div', { class: 'c' }, `${Number(n.note_date.slice(5, 7))}/${Number(n.note_date.slice(8))}　${n.content}`),
         h('div', { class: 'm' }, `${n.created_by_name}　${fmtTime(n.created_at)}`)),
-      (n.created_by === me.id || me.role === 'admin')
+      (APP.canEdit() && (n.created_by === me.id || me.role === 'admin'))
         ? h('button', {
           class: 'small noexp', onclick: async (e) => {
             e.target.disabled = true;

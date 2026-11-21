@@ -6,7 +6,7 @@
   const ROLE = { admin: '超級管理員', manager: '店長', accountant: '帳務人員', pending: '待開通' };
   const state = { profile: null, stores: [] };
   // 提供給各頁面模組使用
-  const APP = window.APP = { sb, h, state, mount, shell, fmtTime, showMsg, logAction, ROLE, pages: {} };
+  const APP = window.APP = { sb, h, state, mount, shell, fmtTime, showMsg, logAction, ROLE, pages: {}, canEdit: () => canEdit() };
 
   /* ---------- 小工具（一律用 textContent，避免 XSS） ---------- */
   function h(tag, attrs, ...kids) {
@@ -92,7 +92,7 @@
 
   /* ---------- 載入使用者資料 ---------- */
   async function loadProfile(uid) {
-    const { data: p, error } = await sb.from('profiles').select('id,display_name,role,is_active').eq('id', uid).maybeSingle();
+    const { data: p, error } = await sb.from('profiles').select('id,display_name,role,is_active,can_edit').eq('id', uid).maybeSingle();
     if (error || !p) return null;
     const { data: s } = await sb.from('user_stores').select('store_name').eq('user_id', uid);
     state.stores = (s || []).map((r) => r.store_name);
@@ -100,9 +100,13 @@
   }
 
   /* ---------- 版型 ---------- */
+  // 帳務人員只能看：首頁、日帳明細、月結表、行事曆；且需授權（can_edit）才能新增／修改
+  const ACCT_PAGES = ['home', 'daily', 'monthly', 'calendar'];
+  const canEdit = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager' || (p.role === 'accountant' && !!p.can_edit)); };
+  const canOpen = (k) => !(state.profile.role === 'accountant' && !ACCT_PAGES.includes(k));
   function shell(active, ...content) {
     const p = state.profile;
-    const items = [['home', '首頁'], ['daily', '日帳明細'], ['monthly', '月結表'], ['analysis', '分析'], ['schedule', '排班表'], ['calendar', '行事曆']];
+    const items = [['home', '首頁'], ['daily', '日帳明細'], ['monthly', '月結表'], ['analysis', '分析'], ['schedule', '排班表'], ['calendar', '行事曆']].filter(([k]) => canOpen(k));
     if (p.role === 'admin') items.push(['users', '帳號管理'], ['logs', '操作紀錄']);
     return [
       h('div', { class: 'topbar' },
@@ -144,7 +148,7 @@
     mount(...shell('home',
       h('h2', {}, '歡迎，' + p.display_name),
       h('p', { class: 'meta' }, scope),
-      h('div', { class: 'grid' }, pages.map(([k, t, d]) => k
+      h('div', { class: 'grid' }, pages.filter(([k]) => !k || canOpen(k)).map(([k, t, d]) => k
         ? h('a', { class: 'tile', href: '#' + k }, h('h3', {}, t), h('p', {}, d))
         : h('div', { class: 'tile off' }, h('h3', {}, t, h('span', { class: 'badge' }, '開發中')), h('p', {}, d))))));
   }
@@ -168,6 +172,7 @@
       return h('label', {}, cb, s);
     });
     const active = h('input', { type: 'checkbox', checked: u.is_active, disabled: me });
+    const edit = h('input', { type: 'checkbox', checked: u.can_edit, disabled: me });
     const msg = h('div');
     const save = h('button', {
       class: 'small',
@@ -177,9 +182,10 @@
           if (!me && roleSel.value !== u.role) await must(sb.rpc('admin_set_role', { p_user: u.id, p_role: roleSel.value }));
           const stores = boxes.map((l) => l.firstChild).filter((c) => c.checked).map((c) => c.value);
           if (stores.join() !== u.stores.join()) await must(sb.rpc('admin_set_stores', { p_user: u.id, p_stores: stores }));
+          if (!me && edit.checked !== u.can_edit) await must(sb.rpc('admin_set_can_edit', { p_user: u.id, p_can: edit.checked }));
           if (!me && active.checked !== u.is_active) await must(sb.rpc('admin_set_active', { p_user: u.id, p_active: active.checked }));
           showMsg(msg, '已儲存', 'ok');
-          u.role = roleSel.value; u.is_active = active.checked; u.stores = stores;
+          u.role = roleSel.value; u.can_edit = edit.checked; u.is_active = active.checked; u.stores = stores;
         } catch (e) { showMsg(msg, '儲存失敗：' + e.message, 'err'); }
         save.disabled = false;
       }
@@ -189,7 +195,7 @@
         h('div', {}, h('span', { class: 'nm' }, u.display_name), h('span', { class: 'badge ' + u.role }, ROLE[u.role]), me ? h('span', { class: 'badge' }, '我') : null,
           h('div', { class: 'em' }, u.email)),
         h('div', { class: 'meta' }, '註冊：' + fmtTime(u.created_at), h('br'), '最近登入：' + fmtTime(u.last_sign_in_at))),
-      h('div', { class: 'row' }, h('label', {}, '角色', roleSel), h('label', {}, active, '啟用')),
+      h('div', { class: 'row' }, h('label', {}, '角色', roleSel), h('label', {}, active, '啟用'), h('label', {}, edit, '可新增／修改（帳務人員需授權；店長預設可）')),
       h('div', { class: 'row' }, h('span', { class: 'meta' }, '授權店別：'), boxes),
       h('div', { class: 'row' }, save), msg);
   }
@@ -235,6 +241,7 @@
       logAction('view_page', { page });
       return page === 'users' ? renderUsers() : renderLogs('auth');
     }
+    if (APP.pages[page] && !canOpen(page)) { logAction('view_page', { page: 'home' }); return renderHome(); }
     if (APP.pages[page]) {
       logAction('view_page', { page });
       return APP.pages[page]();

@@ -49,6 +49,6 @@
       h('p', { class: 'big2' }, `總計 ${L.num(s.amount)} 元`), kv,
       h('p', { class: 'meta' }, '平均額＝業績 ÷ 工作日；工作日以日報表中狀態為「上班」的天數計算。'));
     const exp = L.exportBar(() => sheet, () => title, () => ({ page: 'monthly', store: sel.store, month: `${sel.y}-${L.pad(sel.m)}` }));
-    return [L.orderPanel(d, sel.store, sel.y, sel.m, render), exp, sheet];
+    return [APP.canEdit() ? L.orderPanel(d, sel.store, sel.y, sel.m, render) : null, exp, sheet].filter(Boolean);
   }
 })();

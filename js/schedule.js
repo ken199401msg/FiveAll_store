@@ -258,17 +258,17 @@
       const s = h('select', {
         class: 'noexp cs', onchange: () => { early[c] = s.value; eo.textContent = s.value ? nameOf(s.value) : '無早班'; saveEarly(); }
       }, h('option', { value: '' }, '無早班'), roster.map((a) => h('option', { value: a, selected: early[c] === a }, nameOf(a))));
-      return h('td', { class: c === 0 || c === 6 ? 'we' : '' }, eo, s);
+      return h('td', { class: c === 0 || c === 6 ? 'we' : '' }, eo, APP.canEdit() ? s : null);
     });
     const labelEo = h('span', { class: 'eo early-t' }, settings.early_label);
     const labelIn = h('input', { type: 'text', class: 'noexp', value: settings.early_label, maxlength: 40, onchange: () => { labelEo.textContent = labelIn.value; saveEarly({ early_label: labelIn.value }); } });
     const earlyBlock = h('div', { style: 'margin-top:12px' },
-      h('div', { class: 'early-t' }, labelEo, labelIn),
+      h('div', { class: 'early-t' }, labelEo, APP.canEdit() ? labelIn : null),
       h('div', { class: 'tw' }, h('table', { class: 'calt' }, h('thead', {}, h('tr', {}, L.WEEK.map((t, c) => h('th', { class: c === 0 || c === 6 ? 'we' : '' }, '週' + t)))), h('tbody', {}, h('tr', {}, earlyCells)))));
 
     const sheet = h('div', { class: 'sheet cal' }, h('h3', {}, title),
       h('div', { class: 'tw' }, h('table', { class: 'calt' }, h('thead', {}, head), h('tbody', {}, rows))), earlyBlock);
     const exp = L.exportBar(() => sheet, () => title, () => ({ page: 'calendar', store: sel.store, month: `${sel.y}-${L.pad(sel.m)}` }));
-    return [h('p', { class: 'meta' }, '行事曆內容來自「排班表」；早班師傅選擇後會自動儲存。'), subscribePanel(), exp, sheet, msg];
+    return [h('p', { class: 'meta' }, APP.canEdit() ? '行事曆內容來自「排班表」；早班師傅選擇後會自動儲存。' : '行事曆內容來自「排班表」（唯讀）。'), APP.canEdit() ? subscribePanel() : null, exp, sheet, msg].filter(Boolean);
   }
 })();

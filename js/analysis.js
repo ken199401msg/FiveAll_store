@@ -51,7 +51,7 @@
   async function loadData() {
     const stores = sel.store === '全部' ? L.myStores() : [sel.store];
     const to = L.monthRange(sel.y, sel.m).end;
-    const canRate = ['admin', 'accountant'].includes(state.profile.role);
+    const canRate = state.profile.role === 'admin';
     const [a, b, ths, rt] = await Promise.all([
       sb.rpc('analytics_monthly', { p_stores: stores, p_from: '2020-01-01', p_to: to }),
       sb.rpc('analytics_days', { p_stores: stores, p_from: '2020-01-01', p_to: to }),
