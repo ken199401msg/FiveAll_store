@@ -97,6 +97,7 @@
     const { data: s } = await sb.from('user_stores').select('store_name').eq('user_id', uid);
     state.stores = (s || []).map((r) => r.store_name);
     state.real = { profile: p, stores: state.stores.slice() };
+    if (p.role === 'admin') await loadViewUsers(uid);
     return applyView(p);
   }
 
@@ -110,6 +111,21 @@
     'acc:edit': ['帳務｜已授權修改', { role: 'accountant', can_edit: true, can_analysis: false }],
     'acc:full': ['帳務｜授權修改＋分析', { role: 'accountant', can_edit: true, can_analysis: true }]
   };
+  const ROLE_ZH = { manager: '店長', accountant: '帳務', admin: '超級管理員' };
+  /* 加入「實際帳號」視角：用該帳號的角色、店別、授權預覽 */
+  async function loadViewUsers(myId) {
+    Object.keys(VIEWS).filter((k) => k.indexOf('u:') === 0).forEach((k) => delete VIEWS[k]);
+    try {
+      const [{ data: ps }, { data: us }] = await Promise.all([
+        sb.from('profiles').select('id,display_name,role,is_active,can_edit,can_analysis,data_from').neq('id', myId).order('display_name'),
+        sb.from('user_stores').select('user_id,store_name')]);
+      (ps || []).filter((x) => x.role !== 'admin' && x.is_active !== false).forEach((x) => {
+        const st = (us || []).filter((r) => r.user_id === x.id).map((r) => r.store_name);
+        const tag = x.role === 'accountant' ? (x.can_edit ? '已授權' : '僅檢視') + (x.can_analysis ? '＋分析' : '') : st.join('＋') || '未指定店';
+        VIEWS['u:' + x.id] = [(x.display_name || '（未命名）') + '｜' + (ROLE_ZH[x.role] || x.role) + '・' + tag, { role: x.role, can_edit: !!x.can_edit, can_analysis: !!x.can_analysis, data_from: x.data_from }, st, true];
+      });
+    } catch (e) { /* ignore */ }
+  }
   function curView() { try { const v = sessionStorage.getItem('viewAs'); return VIEWS[v] ? v : 'self'; } catch (e) { return 'self'; } }
   function applyView(p) {
     if (!p || p.role !== 'admin') return p;
@@ -130,7 +146,7 @@
   const canEdit = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager' || (p.role === 'accountant' && !!p.can_edit)); };
   const canEditCal = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager'); }; // 行事曆：帳務一律不可修改
   const canOpen = (k) => !(state.profile.role === 'accountant' && !(ACCT_PAGES.includes(k) || (k === 'analysis' && state.profile.can_analysis)));
-  const VER = 37;
+  const VER = 38;
   /* 資料更新時間：最新一筆日報的日期與寫入時間 */
   function updateBadge() {
     const el = h('div', { class: 'upd' }, '資料更新時間：讀取中…');
@@ -156,8 +172,10 @@
       h('div', { class: 'topbar' },
         h('div', { class: 't' }, '五眾店務管理'),
         h('div', { class: 'who' }, p.display_name, h('span', { class: 'badge ' + p.role }, ROLE[p.role])),
-        state.real && state.real.profile.role === 'admin' ? h('select', { class: 'vsel', title: '檢視視角', onchange: (e) => setView(e.target.value) },
-          Object.entries(VIEWS).map(([k, v]) => h('option', { value: k, selected: k === curView() }, k === 'self' ? '視角：本人' : '視角：' + v[0]))) : null,
+        state.real && state.real.profile.role === 'admin' ? h('select', { class: 'vsel', title: '切換檢視身分', onchange: (e) => setView(e.target.value) },
+          h('optgroup', { label: '本人' }, h('option', { value: 'self', selected: curView() === 'self' }, '視角：本人（超級管理員）')),
+          h('optgroup', { label: '角色預設' }, Object.entries(VIEWS).filter(([k]) => k !== 'self' && k.indexOf('u:') !== 0).map(([k, v]) => h('option', { value: k, selected: k === curView() }, '視角：' + v[0]))),
+          Object.keys(VIEWS).some((k) => k.indexOf('u:') === 0) ? h('optgroup', { label: '實際帳號' }, Object.entries(VIEWS).filter(([k]) => k.indexOf('u:') === 0).map(([k, v]) => h('option', { value: k, selected: k === curView() }, '視角：' + v[0]))) : null) : null,
         h('button', { class: 'small fsb', title: '縮小字體', onclick: () => bump(-0.1) }, 'A−'), h('button', { class: 'small fsb', title: '字體預設大小', onclick: () => { fs = 1; applyFs(); } }, '預設'), h('button', { class: 'small fsb', title: '放大字體', onclick: () => bump(0.1) }, 'A＋'), h('a', { class: 'small pwl', href: '#password' }, '改密碼'), h('button', { class: 'small', onclick: signOut }, '登出')),
       updateBadge(),
       h('div', { class: 'nav' }, items.map(([k, label]) =>
