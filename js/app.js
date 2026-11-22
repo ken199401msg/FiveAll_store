@@ -146,7 +146,7 @@
   const canEdit = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager' || (p.role === 'accountant' && !!p.can_edit)); };
   const canEditCal = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager'); }; // 行事曆：帳務一律不可修改
   const canOpen = (k) => !(state.profile.role === 'accountant' && !(ACCT_PAGES.includes(k) || (k === 'analysis' && state.profile.can_analysis)));
-  const VER = 39;
+  const VER = 40;
   /* 資料更新時間：最新一筆日報的日期與寫入時間 */
   function updateBadge() {
     const el = h('div', { class: 'upd' }, '資料更新時間：讀取中…');
@@ -170,7 +170,7 @@
     if (p.role === 'admin') items.push(['users', '帳號管理'], ['wmset', '浮水印'], ['logs', '操作紀錄']);
     return [
       h('div', { class: 'topbar' },
-        h('div', { class: 't' }, '五眾店務管理'),
+        h('div', { class: 't' }, '五眾店務管理', h('span', { class: 'tstore' }, p.role === 'admin' && curView() === 'self' ? '全部店別' : (state.stores.length ? state.stores.join('＋') : '未指定店別'))),
         h('div', { class: 'who' }, p.display_name, h('span', { class: 'badge ' + p.role }, ROLE[p.role])),
         state.real && state.real.profile.role === 'admin' ? h('select', { class: 'vsel', title: '切換檢視身分', onchange: (e) => setView(e.target.value) },
           h('optgroup', { label: '本人' }, h('option', { value: 'self', selected: curView() === 'self' }, '視角：本人（超級管理員）')),
