@@ -256,7 +256,7 @@
       rows.push(
         h('tr', { class: 'wkstart' }, h('th', { class: 'rl' }, '標籤'), days.map((d, c) => h('td', { class: ('dl ' + tdc(c)).trim() }, d ? `${sel.m}/${d}` : ''))),
         h('tr', {}, h('th', { class: 'rl' }, '休假'), days.map((d, c) => h('td', { class: ('nm ' + tdc(c)).trim() }, d ? ((byDate.get(dstr(d)) || { leave: [] }).leave.map((a) => h('div', {}, nameOf(a)))) : ''))),
-        h('tr', {}, h('th', { class: 'rl' }, '上班'), days.map((d, c) => h('td', { class: ('nm sm ' + tdc(c)).trim() }, d ? [((byDate.get(dstr(d)) || { work: [] }).work.map((a) => h('div', {}, nameOf(a)))), HOL.is(dstr(d)) ? h('div', { class: 'holt' }, HOL.name(dstr(d))) : null] : ''))));
+        h('tr', {}, h('th', { class: 'rl' }, '上班'), days.map((d, c) => h('td', { class: ('nm wk ' + tdc(c)).trim() }, d ? [((byDate.get(dstr(d)) || { work: [] }).work.map((a) => h('div', {}, nameOf(a)))), HOL.is(dstr(d)) ? h('div', { class: 'holt' }, HOL.name(dstr(d))) : null] : ''))));
     }
     const head = h('tr', {}, h('th', { class: 'rl' }, ''), L.WEEK.map((t, c) => h('th', { class: c === 0 || c === 6 ? 'we' : '' }, '週' + t)));
 
