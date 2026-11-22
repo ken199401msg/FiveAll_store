@@ -224,3 +224,10 @@ details.recon>summary{font-weight:700;color:#12507a;font-size:17px}
 .main .sheet td.stk{white-space:nowrap}
 .exporting .stamp.on{width:46px;height:46px;font-size:14px}
 .topbar .t .tstore{display:inline-block;margin-left:8px;padding:2px 8px;border-radius:10px;background:rgba(255,255,255,.22);font-size:12px;font-weight:600;vertical-align:middle}
+/* 休假日曆：師傅名字放大、單一名字不換行；同日多位則各自一行 */
+.sheet .calt td.nm div{white-space:nowrap;line-height:1.35}
+.main .sheet .calt td.nm{font-size:calc(22px*var(--fs,1))}
+.main .sheet .calt td.nm.sm{font-size:calc(14px*var(--fs,1))}
+.exporting .calt td.nm{font-size:32px}
+.exporting .calt td.nm.sm{font-size:18px}
+.exporting .calt td.nm div{white-space:nowrap}
