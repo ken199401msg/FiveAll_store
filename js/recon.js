@@ -53,7 +53,7 @@
     const days = [];
     let cur = null;
     const sumPlus = (t) => String(t).split('+').reduce((s, x) => s + (Number(x) || 0), 0);
-    const clean = String(text).replace(/[　 ​-‍﻿]/g, ' ').replace(/[／⁄]/g, '/').replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 65248));
+    const clean = String(text).replace(/[　 ​-‍﻿]/g, ' ').replace(/[／⁄]/g, '/').replace(/[０-９]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 65248)).replace(/[「」『』［］【】\[\]〔〕〈〉《》“”"]/g, ' ');
     for (const raw of clean.split(/\r?\n/)) {
       const line = raw.trim();
       if (!line) continue;
@@ -223,6 +223,7 @@
             r.daily_report_items.forEach((it) => { items[it.name] = { status: it.status, amount: Number(it.amount || 0), count: Number(it.total_count || 0), walkin: Number(it.unfulfilled || 0) }; if (it.status === 'work') tot += Number(it.amount || 0); });
             const rec = { items, total: { amount: tot } };
             if (r.store === sel.store) sysBy[r.report_date] = rec;
+            else if (!L.myStores().includes(r.store)) return; // 無權限的店不納入（含管理員預覽他人視角時）
             else (otherBy[r.report_date] = otherBy[r.report_date] || []).push({ store: r.store, day: rec });
           });
           days.forEach((d) => check(d, sysBy[d.date], nameOf, otherBy[d.date]));

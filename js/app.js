@@ -146,7 +146,7 @@
   const canEdit = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager' || (p.role === 'accountant' && !!p.can_edit)); };
   const canEditCal = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager'); }; // 行事曆：帳務一律不可修改
   const canOpen = (k) => !(state.profile.role === 'accountant' && !(ACCT_PAGES.includes(k) || (k === 'analysis' && state.profile.can_analysis)));
-  const VER = 43;
+  const VER = 44;
   /* 資料更新時間：最新一筆日報的日期與寫入時間 */
   function updateBadge() {
     const el = h('div', { class: 'upd' }, '資料更新時間：讀取中…');
