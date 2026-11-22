@@ -25,7 +25,8 @@
 
   /* 可選店別：超級管理員、帳務為全部；店長為被授權的店 */
   function myStores() {
-    return state.profile.role === 'manager' ? CONFIG.STORES.filter((s) => state.stores.includes(s)) : CONFIG.STORES.slice();
+    // 超級管理員（本人視角）看全部；店長、帳務只看被授權的店（資料庫端同樣限制）
+    return CONFIG.STORES.filter((s) => state.stores.includes(s));
   }
 
   let therapistCache = null;

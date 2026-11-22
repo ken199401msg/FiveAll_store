@@ -107,9 +107,9 @@
     'mgr:all': ['店長｜五健＋五順（我的店長身分）', { role: 'manager' }, ['五健', '五順']],
     'mgr:五健': ['店長｜五健', { role: 'manager' }, ['五健']],
     'mgr:五順': ['店長｜五順', { role: 'manager' }, ['五順']],
-    'acc:ro': ['帳務｜僅檢視', { role: 'accountant', can_edit: false, can_analysis: false }],
-    'acc:edit': ['帳務｜已授權修改', { role: 'accountant', can_edit: true, can_analysis: false }],
-    'acc:full': ['帳務｜授權修改＋分析', { role: 'accountant', can_edit: true, can_analysis: true }]
+    'acc:ro': ['帳務｜僅檢視', { role: 'accountant', can_edit: false, can_analysis: false }, ['五健', '五順']],
+    'acc:edit': ['帳務｜已授權修改', { role: 'accountant', can_edit: true, can_analysis: false }, ['五健', '五順']],
+    'acc:full': ['帳務｜授權修改＋分析', { role: 'accountant', can_edit: true, can_analysis: true }, ['五健', '五順']]
   };
   const ROLE_ZH = { manager: '店長', accountant: '帳務', admin: '超級管理員' };
   /* 加入「實際帳號」視角：用該帳號的角色、店別、授權預覽 */
@@ -121,7 +121,7 @@
         sb.from('user_stores').select('user_id,store_name')]);
       (ps || []).filter((x) => x.role !== 'admin' && x.is_active !== false).forEach((x) => {
         const st = (us || []).filter((r) => r.user_id === x.id).map((r) => r.store_name);
-        const tag = x.role === 'accountant' ? (x.can_edit ? '已授權' : '僅檢視') + (x.can_analysis ? '＋分析' : '') : st.join('＋') || '未指定店';
+        const tag = x.role === 'accountant' ? st.join('＋') + ' ' + (x.can_edit ? '已授權' : '僅檢視') + (x.can_analysis ? '＋分析' : '') : st.join('＋') || '未指定店';
         VIEWS['u:' + x.id] = [(x.display_name || '（未命名）') + '｜' + (ROLE_ZH[x.role] || x.role) + '・' + tag, { role: x.role, can_edit: !!x.can_edit, can_analysis: !!x.can_analysis, data_from: x.data_from }, st, true];
       });
     } catch (e) { /* ignore */ }
@@ -130,7 +130,7 @@
   function applyView(p) {
     if (!p || p.role !== 'admin') return p;
     const v = VIEWS[curView()];
-    if (!v[1]) { state.stores = state.real.stores.slice(); return p; }
+    if (!v[1]) { state.stores = CONFIG.STORES.slice(); return p; } // 超級管理員本人：全部店
     state.stores = (v[2] || []).slice();
     return Object.assign({}, p, v[1]);
   }
@@ -146,7 +146,7 @@
   const canEdit = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager' || (p.role === 'accountant' && !!p.can_edit)); };
   const canEditCal = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager'); }; // 行事曆：帳務一律不可修改
   const canOpen = (k) => !(state.profile.role === 'accountant' && !(ACCT_PAGES.includes(k) || (k === 'analysis' && state.profile.can_analysis)));
-  const VER = 44;
+  const VER = 45;
   /* 資料更新時間：最新一筆日報的日期與寫入時間 */
   function updateBadge() {
     const el = h('div', { class: 'upd' }, '資料更新時間：讀取中…');
