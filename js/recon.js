@@ -74,7 +74,7 @@
         days.push(cur);
       }
       const key = line.startsWith('總') ? '總' : alSet.find((a) => line.startsWith(a));
-      if (!key) continue;
+      if (!key) { if (/^\S{1,5}\s+[\d,]+\s+[\d+]+\s+\d+$/.test(line)) cur.notes.push(`「${line}」讀不出是哪位師傅（簡稱未登錄或寫法不同），未列入加總`); continue; }
       const rest = line.slice(key.length).trim();
       const tk = rest.split(/\s+/).filter(Boolean);
       if (!tk.length) continue;
