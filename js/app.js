@@ -104,9 +104,9 @@
   /* 超級管理員「檢視視角」：只改變畫面呈現（預覽他人看到的樣子），資料權限仍是管理員本人 */
   const VIEWS = {
     self: ['本人（超級管理員）'],
+    'mgr:all': ['店長｜五健＋五順（我的店長身分）', { role: 'manager' }, ['五健', '五順']],
     'mgr:五健': ['店長｜五健', { role: 'manager' }, ['五健']],
     'mgr:五順': ['店長｜五順', { role: 'manager' }, ['五順']],
-    'mgr:all': ['店長｜五健＋五順', { role: 'manager' }, ['五健', '五順']],
     'acc:ro': ['帳務｜僅檢視', { role: 'accountant', can_edit: false, can_analysis: false }],
     'acc:edit': ['帳務｜已授權修改', { role: 'accountant', can_edit: true, can_analysis: false }],
     'acc:full': ['帳務｜授權修改＋分析', { role: 'accountant', can_edit: true, can_analysis: true }]
@@ -146,7 +146,7 @@
   const canEdit = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager' || (p.role === 'accountant' && !!p.can_edit)); };
   const canEditCal = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager'); }; // 行事曆：帳務一律不可修改
   const canOpen = (k) => !(state.profile.role === 'accountant' && !(ACCT_PAGES.includes(k) || (k === 'analysis' && state.profile.can_analysis)));
-  const VER = 38;
+  const VER = 39;
   /* 資料更新時間：最新一筆日報的日期與寫入時間 */
   function updateBadge() {
     const el = h('div', { class: 'upd' }, '資料更新時間：讀取中…');
