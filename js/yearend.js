@@ -53,20 +53,23 @@
       if (!v) return h('td', { class: 'sm' }, '—');
       return h('td', {}, L.num(v), h('div', { style: 'font-size:12px;font-weight:700;color:' + (b ? '#1a7f4b' : '#98a2b3') }, b ? '獎金 ' + L.num(b) : '未達標'));
     };
-    const mDbg = (m) => { const parts = aliases.map((a) => amt(a, m)).filter((v) => v > 0); return parts.length ? `${parts.length} 人上班・達標 ${parts.filter((v) => v >= BASE).length} 人` : '—'; };
-    const head = h('tr', {}, h('th', {}, '月份'), h('th', {}, '除錯'), aliases.map((a) => h('th', {}, nameOf(a))));
-    const body = mon.map((m) => h('tr', {}, h('td', { class: 'l' }, m + ' 月'), h('td', { class: 'sm' }, mDbg(m)), aliases.map((a) => cell(amt(a, m)))));
-    const lab = (t) => h('td', { class: 'l', colspan: 2 }, t);
+    const head = h('tr', {}, h('th', {}, '師傅'), mon.map((m) => h('th', {}, m + ' 月')), ['年總業績', '逐月獎金合計', '達標月數', '除錯：(年總−90,000×12)÷10,000×500', '差異＝逐月合計−除錯−達標月數×500'].map((t) => h('th', { class: 'dbg' }, t)));
+    const body = aliases.map((a) => {
+      const t = tot[a], d = t.bon - t.dbg - t.ok * UNIT;
+      return h('tr', {}, h('td', { class: 'l' }, nameOf(a)), mon.map((m) => cell(amt(a, m))),
+        h('td', {}, L.num(t.sum)), h('td', { style: 'font-weight:700' }, L.num(t.bon)), h('td', {}, t.ok + ' 月'), h('td', {}, L.num(t.dbg)),
+        h('td', { style: d ? 'color:#b54708;font-weight:700' : '' }, L.num(d)));
+    });
+    const mtot = (m) => aliases.reduce((n, a) => n + amt(a, m), 0);
+    const mbon = (m) => aliases.reduce((n, a) => n + bonus(amt(a, m)), 0);
     const foot = [
-      h('tr', { class: 'tot' }, lab('年總業績'), aliases.map((a) => h('td', {}, L.num(tot[a].sum)))),
-      h('tr', { class: 'tot' }, lab('月獎金合計（逐月）'), aliases.map((a) => h('td', {}, L.num(tot[a].bon)))),
-      h('tr', {}, lab('達標月數'), aliases.map((a) => h('td', {}, tot[a].ok + ' 月'))),
-      h('tr', {}, lab('除錯：(年總−90,000×12)÷10,000×500'), aliases.map((a) => h('td', {}, L.num(tot[a].dbg)))),
-      h('tr', {}, lab('差異＝逐月合計−除錯−達標月數×500'), aliases.map((a) => { const d = tot[a].bon - tot[a].dbg - tot[a].ok * UNIT; return h('td', { style: d ? 'color:#b54708;font-weight:700' : '' }, L.num(d)); }))
+      h('tr', { class: 'tot' }, h('td', { class: 'l' }, '業績合計'), mon.map((m) => h('td', {}, L.num(mtot(m)))), h('td', {}, L.num(aliases.reduce((n, a) => n + tot[a].sum, 0))), h('td', {}, L.num(aliases.reduce((n, a) => n + tot[a].bon, 0))), h('td', { colspan: 3 })),
+      h('tr', {}, h('td', { class: 'l' }, '當月獎金合計'), mon.map((m) => h('td', {}, L.num(mbon(m)))), h('td', { colspan: 5 })),
+      h('tr', {}, h('td', { class: 'l' }, '當月達標人數'), mon.map((m) => h('td', {}, aliases.filter((a) => amt(a, m) >= BASE).length + ' 人')), h('td', { colspan: 5 }))
     ];
     const sheet = h('div', { class: 'sheet' }, h('h3', {}, title),
       h('div', { class: 'tw' }, h('table', {}, h('thead', {}, head), h('tbody', {}, body), h('tfoot', {}, foot))),
-      h('p', { class: 'meta' }, '月獎金：當月業績達 90,000 發 500，每多 10,000 加 500，未達標為 0。除錯列＝個人年總業績直接套公式；「差異」扣掉每個達標月的起算 500 後，若不為 0，代表有月份未達標，或某月業績有不足 10,000 的零頭。本頁為整年完整資料，不受「資料起始日」影響。'));
+      h('p', { class: 'meta' }, '月獎金：當月業績達 90,000 發 500，每多 10,000 加 500，未達標為 0。除錯＝個人年總業績直接套公式；「差異」扣掉每個達標月的起算 500 後，若不為 0，代表有月份未達標，或某月業績有不足 10,000 的零頭。本頁為整年完整資料，不受「資料起始日」影響。'));
     return [L.exportBar(() => sheet, () => title, () => ({ page: 'yearend', store: sel.store, year: sel.y })), sheet];
   }
 })();
