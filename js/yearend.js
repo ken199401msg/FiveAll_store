@@ -38,7 +38,8 @@
     rows.forEach((r) => { const m = Number(String(r.ym).slice(5, 7)); ((by[r.alias] = by[r.alias] || {})[m] = Number(r.amount || 0)); });
     const order = new Map(ths.map((t, i) => [t.alias, i]));
     const nameOf = (a) => { const t = ths.find((x) => x.alias === a); return t ? t.name : a; };
-    const aliases = Object.keys(by).sort((a, b) => (order.has(a) ? order.get(a) : 999) - (order.has(b) ? order.get(b) : 999));
+    const yr = (a) => Object.values(by[a]).reduce((n, v) => n + v, 0);
+    const aliases = Object.keys(by).sort((a, b) => yr(b) - yr(a)); // 年總業績高→低
     if (!aliases.length) return [h('p', { class: 'meta' }, `${sel.y} 年尚無日報資料。`)];
     const amt = (a, m) => (by[a][m] || 0);
     const tot = {};
