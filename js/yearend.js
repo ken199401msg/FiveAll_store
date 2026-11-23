@@ -5,7 +5,6 @@
   const { h, mount, shell, sb } = APP;
   const L = LIB;
   const BASE = 90000, STEP = 10000, UNIT = 500;
-  const bonus = (amt) => (amt >= BASE ? (Math.floor((amt - BASE) / STEP) + 1) * UNIT : 0);
     let sel = null, seq = 0;
 
   APP.pages.yearend = render;
@@ -33,42 +32,42 @@
 
   function build(ths, rows) {
     const title = `${sel.store} ${sel.y}年 年終核對`;
-    const by = {}; // alias -> month(1-12) -> amount
-    rows.forEach((r) => { const m = Number(String(r.ym).slice(5, 7)); ((by[r.alias] = by[r.alias] || {})[m] = Number(r.amount || 0)); });
+    const bn = {}; const by = {}; // bn：獎金（依兩店合併業績計算）；alias -> month(1-12) -> amount
+    rows.forEach((r) => { const m = Number(String(r.ym).slice(5, 7)); ((by[r.alias] = by[r.alias] || {})[m] = Number(r.amount || 0)); (bn[r.alias] = bn[r.alias] || {})[m] = Number(r.bonus || 0); });
     const order = new Map(ths.map((t, i) => [t.alias, i]));
     const nameOf = (a) => { const t = ths.find((x) => x.alias === a); return t ? t.name : a; };
     const yr = (a) => Object.values(by[a]).reduce((n, v) => n + v, 0);
     const aliases = Object.keys(by).sort((a, b) => yr(b) - yr(a)); // 年總業績高→低
     if (!aliases.length) return [h('p', { class: 'meta' }, `${sel.y} 年尚無日報資料。`)];
     const amt = (a, m) => (by[a][m] || 0);
+    const bonus = (a, m) => (bn[a] && bn[a][m]) || 0;
     const tot = {};
     aliases.forEach((a) => {
       let sum = 0, bon = 0, ok = 0;
-      for (let m = 1; m <= 12; m++) { const v = amt(a, m); sum += v; const b = bonus(v); bon += b; if (b > 0) ok++; }
+      for (let m = 1; m <= 12; m++) { const v = amt(a, m); sum += v; const b = bonus(a, m); bon += b; if (b > 0) ok++; }
       tot[a] = { sum, bon, ok };
     });
     const mon = Array.from({ length: 12 }, (_, i) => i + 1);
-    const cell = (v) => {
-      const b = bonus(v);
+    const cell = (v, b) => {
       if (!v) return h('td', { class: 'sm' }, '—');
       return h('td', {}, h('div', { style: 'font-size:18px;font-weight:800;color:' + (b ? '#1a7f4b' : '#98a2b3') }, b ? L.num(b) : '未達標'), h('div', { style: 'font-size:11px;color:#667085;font-weight:400' }, L.num(v)));
     };
     const head = h('tr', {}, h('th', {}, '師傅'), mon.map((m) => h('th', {}, m + ' 月')), ['年總業績', '年終獎金合計'].map((t) => h('th', { }, t)));
     const body = aliases.map((a) => {
       const t = tot[a];
-      return h('tr', {}, h('td', { class: 'l' }, nameOf(a)), mon.map((m) => cell(amt(a, m))),
+      return h('tr', {}, h('td', { class: 'l' }, nameOf(a)), mon.map((m) => cell(amt(a, m), bonus(a, m))),
         h('td', {}, L.num(t.sum)), h('td', { style: 'font-weight:800;font-size:16px' }, L.num(t.bon)));
     });
     const mtot = (m) => aliases.reduce((n, a) => n + amt(a, m), 0);
-    const mbon = (m) => aliases.reduce((n, a) => n + bonus(amt(a, m)), 0);
+    const mbon = (m) => aliases.reduce((n, a) => n + bonus(a, m), 0);
     const foot = [
       h('tr', { class: 'tot' }, h('td', { class: 'l' }, '業績合計'), mon.map((m) => h('td', {}, L.num(mtot(m)))), h('td', {}, L.num(aliases.reduce((n, a) => n + tot[a].sum, 0))), h('td', {}, L.num(aliases.reduce((n, a) => n + tot[a].bon, 0))), ),
       h('tr', {}, h('td', { class: 'l' }, '當月獎金合計'), mon.map((m) => h('td', {}, L.num(mbon(m)))), ),
-      h('tr', {}, h('td', { class: 'l' }, '當月達標人數'), mon.map((m) => h('td', {}, aliases.filter((a) => amt(a, m) >= BASE).length + ' 人')), )
+      h('tr', {}, h('td', { class: 'l' }, '當月達標人數'), mon.map((m) => h('td', {}, aliases.filter((a) => bonus(a, m) > 0).length + ' 人')), )
     ];
     const sheet = h('div', { class: 'sheet' }, h('h3', {}, title),
       h('div', { class: 'tw' }, h('table', {}, h('thead', {}, head), h('tbody', {}, body), h('tfoot', {}, foot))),
-      h('p', { class: 'meta' }, '月獎金：當月業績達 90,000 發 500，每多 10,000 加 500，未達標為 0。本頁為整年完整資料，不受「資料起始日」影響。'));
+      h('p', { class: 'meta' }, '月獎金：當月業績達 90,000 發 500，每多 10,000 加 500，未達標為 0。獎金依兩間店合併的當月業績計算；單店畫面只顯示該店業績。本頁為整年完整資料，不受「資料起始日」影響。'));
     return [L.exportBar(() => sheet, () => title, () => ({ page: 'yearend', store: sel.store, year: sel.y })), sheet];
   }
 })();
