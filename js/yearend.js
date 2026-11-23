@@ -51,7 +51,7 @@
     const cell = (v) => {
       const b = bonus(v);
       if (!v) return h('td', { class: 'sm' }, '—');
-      return h('td', {}, L.num(v), h('div', { style: 'font-size:12px;font-weight:700;color:' + (b ? '#1a7f4b' : '#98a2b3') }, b ? '獎金 ' + L.num(b) : '未達標'));
+      return h('td', {}, h('div', { style: 'font-size:18px;font-weight:800;color:' + (b ? '#1a7f4b' : '#98a2b3') }, b ? L.num(b) : '未達標'), h('div', { style: 'font-size:11px;color:#667085;font-weight:400' }, L.num(v)));
     };
     const head = h('tr', {}, h('th', {}, '師傅'), mon.map((m) => h('th', {}, m + ' 月')), ['年總業績', '逐月獎金合計', '達標月數', '除錯：(年總−90,000×12)÷10,000×500', '差異＝逐月合計−除錯−達標月數×500'].map((t) => h('th', { class: 'dbg' }, t)));
     const body = aliases.map((a) => {
