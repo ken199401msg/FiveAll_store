@@ -146,7 +146,7 @@
   const canEdit = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager' || (p.role === 'accountant' && !!p.can_edit)); };
   const canEditCal = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager'); }; // 行事曆：帳務一律不可修改
   const canOpen = (k) => !(state.profile.role === 'accountant' && !(ACCT_PAGES.includes(k) || (k === 'analysis' && state.profile.can_analysis)));
-  const VER = 51;
+  const VER = 52;
   /* 資料更新時間：最新一筆日報的日期與寫入時間 */
   function updateBadge() {
     const el = h('div', { class: 'upd' }, '資料更新時間：讀取中…');
@@ -167,7 +167,7 @@
   function shell(active, ...content) {
     const p = state.profile;
     const items = [['home', '首頁'], ['daily', '日帳明細'], ['monthly', '月結表'], ['yearend', '年終核對'], ['analysis', '分析'], ['schedule', '排班表'], ['calendar', '行事曆']].filter(([k]) => canOpen(k));
-    if (p.role === 'admin') items.push(['users', '帳號管理'], ['wmset', '浮水印'], ['logs', '操作紀錄']);
+    if (p.role === 'admin') items.push(['users', '帳號管理'], ['export', '資料匯出'], ['wmset', '浮水印'], ['logs', '操作紀錄']);
     return [
       h('div', { class: 'topbar' },
         h('div', { class: 't' }, '五眾店務管理', h('span', { class: 'tstore' }, p.role === 'admin' && curView() === 'self' ? '全部店別' : (state.stores.length ? state.stores.join('＋') : '未指定店別'))),
