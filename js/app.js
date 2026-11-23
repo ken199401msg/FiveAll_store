@@ -142,11 +142,11 @@
 
   /* ---------- 版型 ---------- */
   // 帳務人員只能看：首頁、日帳明細、月結表、行事曆；且需授權（can_edit）才能新增／修改
-  const ACCT_PAGES = ['home', 'daily', 'monthly', 'calendar', 'password'];
+  const ACCT_PAGES = ['home', 'daily', 'monthly', 'yearend', 'calendar', 'password'];
   const canEdit = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager' || (p.role === 'accountant' && !!p.can_edit)); };
   const canEditCal = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager'); }; // 行事曆：帳務一律不可修改
   const canOpen = (k) => !(state.profile.role === 'accountant' && !(ACCT_PAGES.includes(k) || (k === 'analysis' && state.profile.can_analysis)));
-  const VER = 45;
+  const VER = 46;
   /* 資料更新時間：最新一筆日報的日期與寫入時間 */
   function updateBadge() {
     const el = h('div', { class: 'upd' }, '資料更新時間：讀取中…');
@@ -166,7 +166,7 @@
   applyFs();
   function shell(active, ...content) {
     const p = state.profile;
-    const items = [['home', '首頁'], ['daily', '日帳明細'], ['monthly', '月結表'], ['analysis', '分析'], ['schedule', '排班表'], ['calendar', '行事曆']].filter(([k]) => canOpen(k));
+    const items = [['home', '首頁'], ['daily', '日帳明細'], ['monthly', '月結表'], ['yearend', '年終核對'], ['analysis', '分析'], ['schedule', '排班表'], ['calendar', '行事曆']].filter(([k]) => canOpen(k));
     if (p.role === 'admin') items.push(['users', '帳號管理'], ['wmset', '浮水印'], ['logs', '操作紀錄']);
     return [
       h('div', { class: 'topbar' },
@@ -207,6 +207,7 @@
     const pages = [
       ['daily', '日帳明細', '每日各師傅業績、來客、指定與記事'],
       ['monthly', '月結表', '師傅月業績、工作日、指定率'],
+      ['yearend', '年終核對', '每月達標獎金與全年核對'],
       ['analysis', '分析', '店舖與個人績效分析'],
       ['schedule', '排班表', '每月排班、固定週休與一鍵帶入休假'],
       ['calendar', '行事曆', '週曆與休假、早班師傅，可輸出 PDF']
