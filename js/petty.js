@@ -47,6 +47,21 @@
   }
   const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); }));
 
+  // 上傳多張照片到 petty-cash，回傳資料表用的路徑
+  async function uploadPhotos(list, onProgress) {
+    const now = new Date(); const y = String(now.getFullYear()), m = L.pad(now.getMonth() + 1); const folder = 'web-' + uuid();
+    const out = [];
+    for (let i = 0; i < list.length; i++) {
+      onProgress(`上傳照片 ${i + 1} / ${list.length}…`);
+      const blob = await shrink(list[i]);
+      const name = `${y}/${m}/${folder}/${Date.now()}${i}.jpg`;
+      const up = await sb.storage.from('petty-cash').upload(name, blob, { contentType: 'image/jpeg' });
+      if (up.error) throw new Error('照片上傳失敗：' + up.error.message);
+      out.push('petty-cash/' + name);
+    }
+    return out;
+  }
+
   function addForm() {
     const t = L.todayTW();
     const date = h('input', { type: 'date', value: `${t.y}-${L.pad(t.m)}-${L.pad(t.d)}` });
@@ -100,7 +115,7 @@
     const manage = canManage();
     const list = groups.length ? groups.map((g) => group(g, photoBy[g.key] || [], manage)) : [h('p', { class: 'meta' }, '本月尚無零用金紀錄')];
     return [addForm(), h('div', { class: 'card', style: 'margin-bottom:12px' }, h('b', {}, `${sel.store} ${sel.y} 年 ${sel.m} 月合計：${L.num(total)} 元`), h('span', { class: 'meta', style: 'margin-left:10px' }, `${rows.length} 筆`)),
-      h('p', { class: 'meta' }, manage ? '店長可修改、刪除、補傳照片；帳務人員只能新增與瀏覽。' : '帳務人員可新增與瀏覽；修改、刪除需由店長處理。'), ...list];
+      h('p', { class: 'meta' }, manage ? '店長可修改（含新增照片）、刪除；帳務人員只能新增與瀏覽。' : '帳務人員可新增與瀏覽；修改、刪除需由店長處理。'), ...list];
   }
 
   function group(g, paths, manage) {
@@ -117,30 +132,6 @@
       }
       photoBtn.remove();
     } }, `查看收據照片（${paths.length}）`) : null;
-    const addBox = h('div', { class: 'row' });
-    const addMsg = h('span', { class: 'meta' });
-    const addFiles = h('input', { type: 'file', accept: 'image/*', multiple: true });
-    const addBtn = h('button', { class: 'small', onclick: async () => {
-      const list = [...addFiles.files];
-      if (!list.length) { addMsg.textContent = '請先選擇照片'; return; }
-      addBtn.disabled = true;
-      try {
-        const now = new Date(); const y = String(now.getFullYear()), m = L.pad(now.getMonth() + 1); const folder = 'web-' + uuid();
-        const out = [];
-        for (let i = 0; i < list.length; i++) {
-          addMsg.textContent = `上傳 ${i + 1} / ${list.length}…`;
-          const blob = await shrink(list[i]);
-          const name = `${y}/${m}/${folder}/${Date.now()}${i}.jpg`;
-          const up = await sb.storage.from('petty-cash').upload(name, blob, { contentType: 'image/jpeg' });
-          if (up.error) throw new Error('照片上傳失敗：' + up.error.message);
-          out.push('petty-cash/' + name);
-        }
-        const { error } = await sb.rpc('petty_add_photos', { p_batch: g.key, p_photos: out });
-        if (error) throw new Error(error.message);
-        render();
-      } catch (e) { addMsg.textContent = '失敗：' + e.message; addBtn.disabled = false; }
-    } }, '上傳');
-    if (manage && !String(g.key).startsWith('id')) addBox.append(h('label', {}, '補傳照片', addFiles), addBtn, addMsg);
     const body = h('tbody');
     const draw = () => body.replaceChildren(...g.rows.map((r) => row(r, manage)));
     const rowEls = {};
@@ -156,18 +147,25 @@
     function edit(r, tr) {
       const date = h('input', { type: 'date', value: r.receipt_date }), item = h('input', { type: 'text', value: r.item, maxlength: 60 });
       const amt = h('input', { type: 'number', value: r.amount, min: 0, style: 'width:100px' }), note = h('input', { type: 'text', value: r.note || '', maxlength: 100 });
+      const files = h('input', { type: 'file', accept: 'image/*', multiple: true });
       const msg = h('span', { class: 'meta' });
       const save = h('button', { class: 'small', onclick: async () => {
         save.disabled = true;
-        const { error } = await sb.rpc('petty_update', { p_id: r.id, p_date: date.value, p_item: item.value, p_amount: Math.round(Number(amt.value)), p_note: note.value });
-        save.disabled = false;
-        if (error) msg.textContent = '儲存失敗：' + error.message; else render();
+        try {
+          const list = [...files.files];
+          const paths = list.length ? await uploadPhotos(list, (t) => { msg.textContent = t; }) : [];
+          msg.textContent = '儲存中…';
+          const u = await sb.rpc('petty_update', { p_id: r.id, p_date: date.value, p_item: item.value, p_amount: Math.round(Number(amt.value)), p_note: note.value });
+          if (u.error) throw new Error(u.error.message);
+          if (paths.length) { const ph = await sb.rpc('petty_add_photos_by_id', { p_id: r.id, p_photos: paths }); if (ph.error) throw new Error(ph.error.message); }
+          render();
+        } catch (e) { msg.textContent = '儲存失敗：' + e.message; save.disabled = false; }
       } }, '儲存');
-      tr.replaceChildren(h('td', { colspan: 4 }, h('div', { class: 'row' }, date, item, amt, note, save, h('button', { class: 'small', onclick: () => render() }, '取消'), msg)));
+      tr.replaceChildren(h('td', { colspan: 4 }, h('div', { class: 'row' }, date, item, amt, note), h('div', { class: 'row' }, h('label', {}, '新增收據照片', files), save, h('button', { class: 'small', onclick: () => render() }, '取消'), msg)));
     }
     draw();
     return h('div', { class: 'card', style: 'margin-bottom:10px' },
       h('div', {}, h('b', {}, g.date.slice(5).replace('-', '/')), h('span', { class: 'meta', style: 'margin-left:10px' }, `小計 ${L.num(sub)} 元`), ' ', photoBtn),
-      h('div', { class: 'tw', style: 'margin-top:8px' }, h('table', {}, h('thead', {}, h('tr', {}, ['品項', '金額', '備註', manage ? '' : null].filter((x) => x !== null).map((t) => h('th', {}, t)))), body)), photoBox, manage && addBox.children.length ? addBox : null);
+      h('div', { class: 'tw', style: 'margin-top:8px' }, h('table', {}, h('thead', {}, h('tr', {}, ['品項', '金額', '備註', manage ? '' : null].filter((x) => x !== null).map((t) => h('th', {}, t)))), body)), photoBox);
   }
 })();
