@@ -69,7 +69,7 @@
       photoBtn.disabled = true; photoBtn.textContent = '載入中…';
       photoBox.replaceChildren();
       for (const p of paths) {
-        const { data, error } = await sb.storage.from('petty-cash').download(p);
+        const { data, error } = await sb.storage.from('petty-cash').download(p.replace(/^petty-cash\//, ''));
         if (error || !data) { photoBox.append(h('span', { class: 'meta' }, '照片讀取失敗')); continue; }
         const url = URL.createObjectURL(data);
         photoBox.append(h('img', { src: url, style: 'max-width:100%;width:320px;border:1px solid var(--line);border-radius:8px' }));
