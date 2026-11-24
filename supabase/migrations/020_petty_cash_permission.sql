@@ -1,0 +1,4 @@
+-- 零用金授權：profiles.can_petty、app_can_petty()、admin_set_can_petty(p_user,p_can)
+-- 零用金資料表／照片（含儲存空間）的讀取與 petty_add／petty_add_batch 需 app_can_petty()（admin/manager 預設可；accountant 需勾選）
+-- petty_add_photos(p_batch,p_photos)：admin/manager 補傳照片；admin_list_users 新增 can_petty 欄位
+-- 函式全文見資料庫。
