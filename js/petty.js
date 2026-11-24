@@ -30,23 +30,64 @@
     } catch (e) { if (my === seq) body.replaceChildren(h('div', { class: 'msg err' }, '讀取失敗：' + e.message)); }
   }
 
+  // 縮圖：長邊 1600px、JPEG，手機拍的大圖也能快速上傳
+  function shrink(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image(); const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const k = Math.min(1, 1600 / Math.max(img.width, img.height));
+        const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        c.toBlob((b) => (b ? resolve(b) : reject(new Error('圖片轉換失敗'))), 'image/jpeg', 0.85);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('無法讀取圖片')); };
+      img.src = url;
+    });
+  }
+  const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); }));
+
   function addForm() {
     const t = L.todayTW();
     const date = h('input', { type: 'date', value: `${t.y}-${L.pad(t.m)}-${L.pad(t.d)}` });
-    const item = h('input', { type: 'text', placeholder: '品項，例如 衛生紙', maxlength: 60 });
-    const amt = h('input', { type: 'number', inputmode: 'numeric', min: 0, placeholder: '金額', style: 'width:110px' });
-    const note = h('input', { type: 'text', placeholder: '備註（選填）', maxlength: 100 });
+    const lines = h('div');
+    const mkLine = () => {
+      const item = h('input', { type: 'text', placeholder: '品項，例如 衛生紙', maxlength: 60 });
+      const amt = h('input', { type: 'number', inputmode: 'numeric', min: 0, placeholder: '金額', style: 'width:100px' });
+      const note = h('input', { type: 'text', placeholder: '備註（選填）', maxlength: 100 });
+      const el = h('div', { class: 'row' }, item, amt, note, h('button', { class: 'small', title: '移除這一行', onclick: () => { if (lines.children.length > 1) el.remove(); } }, '✕'));
+      el._v = () => ({ item: item.value.trim(), amount: amt.value === '' ? null : Math.round(Number(amt.value)), note: note.value.trim() });
+      return el;
+    };
+    lines.append(mkLine());
+    const files = h('input', { type: 'file', accept: 'image/*', multiple: true });
     const msg = h('div');
     const btn = h('button', { class: 'small', onclick: async () => {
-      if (!item.value.trim()) { showMsg(msg, '請輸入品項', 'err'); return; }
-      if (amt.value === '' || Number(amt.value) < 0) { showMsg(msg, '請輸入正確金額', 'err'); return; }
+      const items = [...lines.children].map((e) => e._v()).filter((x) => x.item || x.amount != null);
+      if (!items.length) { showMsg(msg, '請輸入品項與金額', 'err'); return; }
+      if (items.some((x) => !x.item || x.amount == null || x.amount < 0)) { showMsg(msg, '每一行都要有品項和正確的金額', 'err'); return; }
       btn.disabled = true;
-      const { error } = await sb.rpc('petty_add', { p_store: sel.store, p_date: date.value, p_item: item.value, p_amount: Math.round(Number(amt.value)), p_note: note.value });
-      btn.disabled = false;
-      if (error) showMsg(msg, '新增失敗：' + error.message, 'err'); else { const [y, m] = date.value.split('-').map(Number); sel.y = y; sel.m = m; render(); }
-    } }, '新增');
+      try {
+        const batch = 'web-' + uuid(); const [y, m] = date.value.split('-');
+        const paths = [];
+        const list = [...files.files];
+        for (let i = 0; i < list.length; i++) {
+          showMsg(msg, `上傳照片 ${i + 1} / ${list.length}…`, 'info');
+          const blob = await shrink(list[i]);
+          const name = `${y}/${m}/${batch}/${Date.now()}${i}.jpg`;
+          const up = await sb.storage.from('petty-cash').upload(name, blob, { contentType: 'image/jpeg' });
+          if (up.error) throw new Error('照片上傳失敗：' + up.error.message);
+          paths.push('petty-cash/' + name);
+        }
+        showMsg(msg, '儲存中…', 'info');
+        const { error } = await sb.rpc('petty_add_batch', { p_store: sel.store, p_date: date.value, p_items: items, p_batch: batch, p_photos: paths });
+        if (error) throw new Error(error.message);
+        sel.y = Number(y); sel.m = Number(m); render();
+      } catch (e) { showMsg(msg, '新增失敗：' + e.message, 'err'); btn.disabled = false; }
+    } }, '新增這張收據');
     return h('div', { class: 'card', style: 'margin-bottom:12px' }, h('b', {}, `新增零用金（${sel.store}）`),
-      h('div', { class: 'row' }, date, item, amt, note, btn), msg);
+      h('div', { class: 'row' }, h('label', {}, '日期', date)), lines,
+      h('div', { class: 'row' }, h('button', { class: 'small', onclick: () => lines.append(mkLine()) }, '＋ 加一個品項'), h('label', {}, '收據照片（可多張）', files), btn), msg);
   }
 
   function build(rows, photos) {

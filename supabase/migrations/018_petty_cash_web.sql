@@ -6,3 +6,5 @@ create policy petty_photo_read on storage.objects for select to authenticated
 -- petty_add(p_store,p_date,p_item,p_amount,p_note)：admin/manager/accountant（限可看的店）可新增，batch_id 為 'web-<uuid>'
 -- petty_update(p_id,p_date,p_item,p_amount,p_note)、petty_delete(p_id)：僅 admin/manager（限可看的店）
 -- 函式全文見資料庫（皆 security definer，並寫入 log_action）。
+
+-- 019：網頁上傳照片（storage insert 政策，路徑限 年/月/web-<uuid>/檔名）與 petty_add_batch(p_store,p_date,p_items jsonb,p_batch,p_photos text[])
