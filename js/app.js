@@ -92,7 +92,7 @@
 
   /* ---------- 載入使用者資料 ---------- */
   async function loadProfile(uid) {
-    const { data: p, error } = await sb.from('profiles').select('id,display_name,role,is_active,can_edit,can_analysis,can_petty,data_from').eq('id', uid).maybeSingle();
+    const { data: p, error } = await sb.from('profiles').select('id,display_name,role,is_active,can_edit,can_analysis,can_petty,can_high,data_from').eq('id', uid).maybeSingle();
     if (error || !p) return null;
     const { data: s } = await sb.from('user_stores').select('store_name').eq('user_id', uid);
     state.stores = (s || []).map((r) => r.store_name);
@@ -109,6 +109,7 @@
     'mgr:五順': ['店長｜五順', { role: 'manager' }, ['五順']],
     'acc:ro': ['帳務｜僅檢視', { role: 'accountant', can_edit: false, can_analysis: false, can_petty: false }, ['五健', '五順']],
     'acc:edit': ['帳務｜已授權修改＋零用金', { role: 'accountant', can_edit: true, can_analysis: false, can_petty: true }, ['五健', '五順']],
+    'acc:high': ['帳務｜高權限（接近店長）', { role: 'accountant', can_edit: true, can_analysis: true, can_petty: true, can_high: true }, ['五健', '五順']],
     'acc:full': ['帳務｜授權修改＋分析', { role: 'accountant', can_edit: true, can_analysis: true, can_petty: true }, ['五健', '五順']]
   };
   const ROLE_ZH = { manager: '店長', accountant: '帳務', admin: '超級管理員' };
@@ -117,12 +118,12 @@
     Object.keys(VIEWS).filter((k) => k.indexOf('u:') === 0).forEach((k) => delete VIEWS[k]);
     try {
       const [{ data: ps }, { data: us }] = await Promise.all([
-        sb.from('profiles').select('id,display_name,role,is_active,can_edit,can_analysis,can_petty,data_from').neq('id', myId).order('display_name'),
+        sb.from('profiles').select('id,display_name,role,is_active,can_edit,can_analysis,can_petty,can_high,data_from').neq('id', myId).order('display_name'),
         sb.from('user_stores').select('user_id,store_name')]);
       (ps || []).filter((x) => x.role !== 'admin' && x.is_active !== false).forEach((x) => {
         const st = (us || []).filter((r) => r.user_id === x.id).map((r) => r.store_name);
-        const tag = x.role === 'accountant' ? st.join('＋') + ' ' + (x.can_edit ? '已授權' : '僅檢視') + (x.can_analysis ? '＋分析' : '') + (x.can_petty ? '＋零用金' : '') : st.join('＋') || '未指定店';
-        VIEWS['u:' + x.id] = [(x.display_name || '（未命名）') + '｜' + (ROLE_ZH[x.role] || x.role) + '・' + tag, { role: x.role, can_edit: !!x.can_edit, can_analysis: !!x.can_analysis, can_petty: !!x.can_petty, data_from: x.data_from }, st, true];
+        const tag = x.role === 'accountant' ? st.join('＋') + ' ' + (x.can_edit ? '已授權' : '僅檢視') + (x.can_analysis ? '＋分析' : '') + (x.can_petty ? '＋零用金' : '') + (x.can_high ? '＋高權限' : '') : st.join('＋') || '未指定店';
+        VIEWS['u:' + x.id] = [(x.display_name || '（未命名）') + '｜' + (ROLE_ZH[x.role] || x.role) + '・' + tag, { role: x.role, can_edit: !!x.can_edit, can_analysis: !!x.can_analysis, can_petty: !!x.can_petty, can_high: !!x.can_high, data_from: x.data_from }, st, true];
       });
     } catch (e) { /* ignore */ }
   }
@@ -143,10 +144,10 @@
   /* ---------- 版型 ---------- */
   // 帳務人員只能看：首頁、日帳明細、月結表、行事曆；且需授權（can_edit）才能新增／修改
   const ACCT_PAGES = ['home', 'daily', 'monthly', 'yearend', 'calendar', 'password'];
-  const canEdit = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager' || (p.role === 'accountant' && !!p.can_edit)); };
-  const canEditCal = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager'); }; // 行事曆：帳務一律不可修改
-  const canOpen = (k) => !(state.profile.role === 'accountant' && !(ACCT_PAGES.includes(k) || (k === 'analysis' && state.profile.can_analysis) || (k === 'petty' && state.profile.can_petty)));
-  const VER = 59;
+  const canEdit = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager' || (p.role === 'accountant' && (!!p.can_edit || !!p.can_high))); };
+  const canEditCal = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager' || (p.role === 'accountant' && !!p.can_high)); }; // 行事曆：一般帳務不可修改
+  const canOpen = (k) => !(state.profile.role === 'accountant' && !(ACCT_PAGES.includes(k) || (k === 'analysis' && (state.profile.can_analysis || state.profile.can_high)) || (k === 'petty' && (state.profile.can_petty || state.profile.can_high)) || (k === 'schedule' && state.profile.can_high)));
+  const VER = 60;
   /* 資料更新時間：最新一筆日報的日期與寫入時間 */
   function updateBadge() {
     const el = h('div', { class: 'upd' }, '資料更新時間：讀取中…');
@@ -228,7 +229,7 @@
       h('p', { class: 'meta' }, '新註冊的帳號預設為「待開通」。設定角色與店別；「資料起始日」之前的資料該帳號看不到（留空＝不限制）。修改授權後，對方需重新登入才會生效。'), list));
     const { data, error } = await sb.rpc('admin_list_users');
     if (error) { list.replaceChildren(h('div', { class: 'msg err' }, '讀取失敗：' + error.message)); return; }
-    const heads = ['帳號', '角色', ...CONFIG.STORES, '啟用', '可修改', '可看分析', '可用零用金', '資料起始日', '', ''];
+    const heads = ['帳號', '角色', ...CONFIG.STORES, '啟用', '可修改', '可看分析', '可用零用金', '高權限帳務', '資料起始日', '', ''];
     list.replaceChildren(h('div', { class: 'tw utbl' }, h('table', {},
       h('thead', {}, h('tr', {}, heads.map((t, i) => h('th', { class: i === 0 ? 'l' : '' }, t)))),
       h('tbody', {}, data.map(userRow)))));
@@ -240,7 +241,7 @@
       ['pending', 'manager', 'accountant', 'admin'].map((r) => h('option', { value: r, selected: r === u.role }, ROLE[r])));
     const storeCb = CONFIG.STORES.map((s) => h('input', { type: 'checkbox', value: s, checked: u.stores.includes(s) }));
     const cbx = (v, dis) => h('input', { type: 'checkbox', checked: v, disabled: dis });
-    const active = cbx(u.is_active, me), edit = cbx(u.can_edit, me), ana = cbx(u.can_analysis, me), pet = cbx(u.can_petty, me);
+    const active = cbx(u.is_active, me), edit = cbx(u.can_edit, me), ana = cbx(u.can_analysis, me), pet = cbx(u.can_petty, me), high = cbx(u.can_high, me);
     const from = h('input', { type: 'date', value: u.data_from || '', disabled: u.role === 'admin' });
     const msg = h('span', { class: 'meta' });
     const save = h('button', {
@@ -254,9 +255,10 @@
           if (!me && edit.checked !== u.can_edit) await must(sb.rpc('admin_set_can_edit', { p_user: u.id, p_can: edit.checked }));
           if (!me && ana.checked !== u.can_analysis) await must(sb.rpc('admin_set_can_analysis', { p_user: u.id, p_can: ana.checked }));
           if (!me && pet.checked !== u.can_petty) await must(sb.rpc('admin_set_can_petty', { p_user: u.id, p_can: pet.checked }));
+          if (!me && high.checked !== u.can_high) await must(sb.rpc('admin_set_can_high', { p_user: u.id, p_can: high.checked }));
           if (!me && active.checked !== u.is_active) await must(sb.rpc('admin_set_active', { p_user: u.id, p_active: active.checked }));
           if ((from.value || null) !== (u.data_from || null)) await must(sb.rpc('admin_set_data_from', { p_user: u.id, p_date: from.value || null }));
-          u.role = roleSel.value; u.can_edit = edit.checked; u.can_analysis = ana.checked; u.can_petty = pet.checked; u.is_active = active.checked; u.stores = stores; u.data_from = from.value || null;
+          u.role = roleSel.value; u.can_edit = edit.checked; u.can_analysis = ana.checked; u.can_petty = pet.checked; u.can_high = high.checked; u.is_active = active.checked; u.stores = stores; u.data_from = from.value || null;
           msg.textContent = '已儲存 ✓';
         } catch (e) { msg.textContent = '失敗：' + e.message; }
         save.disabled = false;
@@ -274,7 +276,7 @@
     return h('tr', {},
       h('td', { class: 'l' }, h('b', {}, u.display_name), me ? ' (我)' : '', h('div', { class: 'em' }, u.email), h('div', { class: 'em' }, '最近登入：' + fmtTime(u.last_sign_in_at))),
       h('td', {}, roleSel), storeCb.map((c) => h('td', {}, c)),
-      h('td', {}, active), h('td', {}, edit), h('td', {}, ana), h('td', {}, pet), h('td', {}, from),
+      h('td', {}, active), h('td', {}, edit), h('td', {}, ana), h('td', {}, pet), h('td', {}, high), h('td', {}, from),
       h('td', {}, save, h('div', {}, msg)), h('td', {}, reset));
   }
 

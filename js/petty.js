@@ -6,7 +6,7 @@
   let sel = null, seq = 0;
   APP.pages.petty = render;
 
-  const canManage = () => ['admin', 'manager'].includes(APP.state.profile.role);
+  const canManage = () => { const p = APP.state.profile; return ['admin', 'manager'].includes(p.role) || (p.role === 'accountant' && !!p.can_high); };
 
   async function render() {
     const my = ++seq;

@@ -1,0 +1,3 @@
+-- 帳務高權限：profiles.can_high；app_is_mgr()（admin/manager/高權限帳務）
+-- app_can_edit/app_can_schedule/app_can_petty 納入高權限帳務；零用金修改/刪除/照片函式改用 app_is_mgr()
+-- admin_set_can_high(p_user,p_can)；admin_list_users 新增 can_high 欄位。函式全文見資料庫。
