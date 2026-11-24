@@ -22,7 +22,7 @@
       const batches = [...new Set((data || []).map((r) => r.batch_id).filter(Boolean))];
       let photos = [];
       if (batches.length) {
-        const p = await sb.from('petty_cash_photos').select('batch_id,photo_path').in('batch_id', batches).order('id');
+        const p = await sb.from('petty_cash_photos').select('id,batch_id,photo_path').in('batch_id', batches).order('id');
         photos = p.data || [];
       }
       if (my !== seq) return;
@@ -111,11 +111,11 @@
     const idx = new Map();
     rows.forEach((r) => { const k = r.batch_id || ('id' + r.id); if (!idx.has(k)) { idx.set(k, groups.length); groups.push({ key: k, date: r.receipt_date, rows: [] }); } groups[idx.get(k)].rows.push(r); });
     const photoBy = {};
-    photos.forEach((p) => (photoBy[p.batch_id] = photoBy[p.batch_id] || []).push(p.photo_path));
+    photos.forEach((p) => (photoBy[p.batch_id] = photoBy[p.batch_id] || []).push({ id: p.id, path: p.photo_path }));
     const manage = canManage();
     const list = groups.length ? groups.map((g) => group(g, photoBy[g.key] || [], manage)) : [h('p', { class: 'meta' }, '本月尚無零用金紀錄')];
     return [addForm(), h('div', { class: 'card', style: 'margin-bottom:12px' }, h('b', {}, `${sel.store} ${sel.y} 年 ${sel.m} 月合計：${L.num(total)} 元`), h('span', { class: 'meta', style: 'margin-left:10px' }, `${rows.length} 筆`)),
-      h('p', { class: 'meta' }, manage ? '店長可修改（含新增照片）、刪除；帳務人員只能新增與瀏覽。' : '帳務人員可新增與瀏覽；修改、刪除需由店長處理。'), ...list];
+      h('p', { class: 'meta' }, manage ? '店長可修改（含新增、刪除照片）、刪除；帳務人員只能新增與瀏覽。' : '帳務人員可新增與瀏覽；修改、刪除需由店長處理。'), ...list];
   }
 
   function group(g, paths, manage) {
@@ -124,11 +124,20 @@
     const photoBtn = paths.length ? h('button', { class: 'small', onclick: async () => {
       photoBtn.disabled = true; photoBtn.textContent = '載入中…';
       photoBox.replaceChildren();
-      for (const p of paths) {
-        const { data, error } = await sb.storage.from('petty-cash').download(p.replace(/^petty-cash\//, ''));
+      for (const ph of paths) {
+        const { data, error } = await sb.storage.from('petty-cash').download(ph.path.replace(/^petty-cash\//, ''));
         if (error || !data) { photoBox.append(h('span', { class: 'meta' }, '照片讀取失敗')); continue; }
         const url = URL.createObjectURL(data);
-        photoBox.append(h('img', { src: url, style: 'max-width:100%;width:320px;border:1px solid var(--line);border-radius:8px' }));
+        const fig = h('div', { style: 'width:320px;max-width:100%' }, h('img', { src: url, style: 'width:100%;border:1px solid var(--line);border-radius:8px;display:block' }),
+          manage ? h('button', { class: 'small', style: 'margin-top:4px', onclick: async (e) => {
+            if (!confirm('確定刪除這張照片？刪除後無法復原。')) return;
+            e.target.disabled = true;
+            const r = await sb.rpc('petty_delete_photo', { p_id: ph.id });
+            if (r.error) { alert('刪除失敗：' + r.error.message); e.target.disabled = false; return; }
+            await sb.storage.from('petty-cash').remove([String(r.data).replace(/^petty-cash\//, '')]);
+            fig.remove(); URL.revokeObjectURL(url);
+          } }, '刪除這張照片') : null);
+        photoBox.append(fig);
       }
       photoBtn.remove();
     } }, `查看收據照片（${paths.length}）`) : null;
