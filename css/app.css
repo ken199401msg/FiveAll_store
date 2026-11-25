@@ -274,3 +274,20 @@ details.recon>summary{font-weight:700;color:#12507a;font-size:17px}
   .tw{-webkit-overflow-scrolling:touch}
   .main table{font-size:calc(13px*var(--fs,1))}
 }
+
+/* 日帳明細：預設（橫放、平板、電腦）顯示全部；手機直立只顯示業績 */
+.pn{display:none}
+@media (max-width:720px) and (orientation:portrait){
+  .main table .wl{display:none}
+  .main table .pn{display:table-cell}
+  .main table .hd{display:none}
+}
+/* 輸出圖片／PDF 一律用完整版 */
+.exporting .wl{display:table-cell !important}
+.exporting .pn{display:none !important}
+.exporting .hd{display:table-cell !important}
+@media (max-width:720px){
+  .sheet select.cs{width:52px;padding:6px 2px;font-size:15px;text-align:center}
+  .sheet td.stk,.sheet th.stk{font-size:11px;min-width:58px}
+  .sheet td.holc{font-size:10px;max-width:56px;min-width:40px}
+}

@@ -8,6 +8,8 @@
 
   APP.pages.schedule = () => page('schedule');
   APP.pages.calendar = () => page('calendar');
+  // 手機畫面：班表用帳務名（簡稱），選單用「休／上」，格子更窄
+  const PHONE = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width:720px)').matches;
 
   async function page(kind) {
     const my = ++seq;
@@ -128,7 +130,7 @@
       const cur = entries.get(key) || '';
       const td = h('td', { class: (we + ' ' + cls(cur)).trim() });
       const eo = h('span', { class: 'eo' }, label(cur, a));
-      const opts = [['', ''], ['leave', '休假'], ['work', isPart(a) ? '上班(兼職)' : '上班']];
+      const opts = [['', ''], ['leave', PHONE ? '休' : '休假'], ['work', PHONE ? '上' : (isPart(a) ? '上班(兼職)' : '上班')]];
       const s = h('select', {
         class: 'noexp cs', onchange: async () => {
           const k = s.value;
@@ -147,7 +149,7 @@
     }
 
     const head = h('tr', {}, h('th', { class: 'l stk' }, '日期'), h('th', {}, '國定假日'),
-      roster.map((a) => h('th', {}, nameOf(a) + (isPart(a) ? '（兼）' : ''))), h('th', {}, '當日上班人數'));
+      roster.map((a) => h('th', PHONE ? { title: nameOf(a) } : {}, PHONE ? (a + (isPart(a) ? '兼' : '')) : nameOf(a) + (isPart(a) ? '（兼）' : ''))), h('th', {}, PHONE ? '人數' : '當日上班人數'));
     const rows = [];
     for (let d = 1; d <= last; d++) {
       const dow = new Date(sel.y, sel.m - 1, d).getDay();

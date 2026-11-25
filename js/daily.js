@@ -61,12 +61,15 @@
         : h('p', { class: 'meta' }, '本月尚無休假紀錄'),
       plannedLeaves(d, sch));
 
-    // 表格
+    // 表格：手機直立只顯示「業績」，橫放／平板／電腦顯示「業績、來客、指定」等全部欄位
+    // wl＝寬版（橫放）儲存格、pn＝窄版（直立）儲存格、hd＝直立時隱藏的欄
     const A = d.aliases;
     const th = (t, o) => h('th', o || {}, t);
+    const two = (tag, cls, content, n) => [h(tag, { class: (cls + ' wl').trim(), colspan: n }, content), h(tag, { class: (cls + ' pn').trim() }, content)];
     const head1 = h('tr', {}, th('日期', { class: 'l stk', rowspan: 2 }),
-      A.map((a) => th(d.nameOf(a), { colspan: 3 })), th('店合計', { colspan: 5 }));
-    const head2 = h('tr', { class: 'sub' }, A.map(() => ['業績', '來客', '指定'].map((t) => th(t))), ['業績', '來客', '指定', '散客', '客單價'].map((t) => th(t)));
+      A.map((a) => two('th', '', d.nameOf(a), 3)), two('th', '', '店合計', 5));
+    const head2 = h('tr', { class: 'sub' }, A.map(() => [th('業績'), th('來客', { class: 'hd' }), th('指定', { class: 'hd' })]),
+      th('業績'), ['來客', '指定', '散客', '客單價'].map((t) => th(t, { class: 'hd' })));
     const t0 = L.todayTW();
     const todayStr = `${t0.y}-${L.pad(t0.m)}-${L.pad(t0.d)}`;
     const span = A.length * 3 + 5;
@@ -76,29 +79,31 @@
       stamps[day.date] = stamp;
       const tds = [h('td', { class: 'stk' + we }, `${sel.m}/${day.d} 週${L.WEEK[day.dow]}`, stamp)];
       // 店休：整天沒有業績，整列合併顯示；過去日期沒有日報則標示「無日報」
-      if (day.closed) return h('tr', {}, tds, h('td', { class: 'cl', colspan: span }, day.closedType === 'typhoon' ? '店休（颱風）' : '店休'));
-      if (!day.has && day.date < todayStr) return h('tr', {}, tds, h('td', { class: 'cl2', colspan: span }, '無日報'));
+      if (day.closed) return h('tr', {}, tds, two('td', 'cl', day.closedType === 'typhoon' ? '店休（颱風）' : '店休', span).map((e, i) => { if (i) e.setAttribute('colspan', A.length + 1); return e; }));
+      if (!day.has && day.date < todayStr) return h('tr', {}, tds, two('td', 'cl2', '無日報', span).map((e, i) => { if (i) e.setAttribute('colspan', A.length + 1); return e; }));
       for (const a of A) {
         const c = day.cells[a];
-        if (!c) tds.push(h('td', { class: we.trim(), colspan: 3 }, ''));
-        else if (c.status !== 'work') tds.push(h('td', { class: 'lv', colspan: 3 }, L.STATUS[c.status] || c.status));
+        if (!c) tds.push(two('td', we.trim(), '', 3));
+        else if (c.status !== 'work') tds.push(two('td', 'lv', L.STATUS[c.status] || c.status, 3));
         else {
           const z = c.amount === 0 && c.count === 0 ? ' zero' : '';
-          tds.push(h('td', { class: (we + z).trim() }, L.num(c.amount)), h('td', { class: (we + z).trim() }, c.count), h('td', { class: (we + z).trim() }, c.designated));
+          const k = (we + z).trim();
+          tds.push(h('td', { class: k }, L.num(c.amount)), h('td', { class: (k + ' hd').trim() }, c.count), h('td', { class: (k + ' hd').trim() }, c.designated));
         }
       }
-      if (day.has) tds.push(h('td', { class: we.trim() }, L.num(day.amount)), h('td', { class: we.trim() }, day.count), h('td', { class: we.trim() }, day.count - day.walkin), h('td', { class: we.trim() }, day.walkin), h('td', { class: we.trim() }, L.num(L.div(day.amount, day.count))));
-      else tds.push(h('td', { class: we.trim(), colspan: 5 }, ''));
+      const k = we.trim(), kh = (k + ' hd').trim();
+      if (day.has) tds.push(h('td', { class: k }, L.num(day.amount)), h('td', { class: kh }, day.count), h('td', { class: kh }, day.count - day.walkin), h('td', { class: kh }, day.walkin), h('td', { class: kh }, L.num(L.div(day.amount, day.count))));
+      else tds.push(two('td', k, '', 5));
       return h('tr', {}, tds);
     });
     const foot = [
       h('tr', { class: 'tot' }, h('td', { class: 'stk' }, '小計'),
-        A.map((a) => [L.num(d.tot[a].amount), d.tot[a].count, d.tot[a].designated].map((v) => h('td', {}, v))),
-        [L.num(s.amount), s.count, s.designated, s.walkin, L.num(L.div(s.amount, s.count))].map((v) => h('td', {}, v))),
+        A.map((a) => [h('td', {}, L.num(d.tot[a].amount)), h('td', { class: 'hd' }, d.tot[a].count), h('td', { class: 'hd' }, d.tot[a].designated)]),
+        h('td', {}, L.num(s.amount)), [s.count, s.designated, s.walkin, L.num(L.div(s.amount, s.count))].map((v) => h('td', { class: 'hd' }, v))),
       h('tr', { class: 'tot' }, h('td', { class: 'stk' }, '工作日'),
-        A.map((a) => h('td', { colspan: 3 }, d.tot[a].work + ' 天')), h('td', { colspan: 5 }, s.days + ' 天')),
+        A.map((a) => two('td', '', d.tot[a].work + ' 天', 3)), two('td', '', s.days + ' 天', 5)),
       h('tr', { class: 'tot' }, h('td', { class: 'stk' }, '指定率'),
-        A.map((a) => h('td', { colspan: 3 }, L.pct(d.tot[a].designated, d.tot[a].count))), h('td', { colspan: 5 }, L.pct(s.designated, s.count)))
+        A.map((a) => two('td', '', L.pct(d.tot[a].designated, d.tot[a].count), 3)), two('td', '', L.pct(s.designated, s.count), 5))
     ];
     const table = h('div', { class: 'tw' }, h('table', {}, h('thead', {}, head1, head2), h('tbody', {}, rows), h('tfoot', {}, foot)));
 
