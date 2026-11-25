@@ -291,3 +291,5 @@ details.recon>summary{font-weight:700;color:#12507a;font-size:17px}
   .sheet td.stk,.sheet th.stk{font-size:11px;min-width:58px}
   .sheet td.holc{font-size:10px;max-width:56px;min-width:40px}
 }
+.phonehint{display:none;font-size:12px;font-weight:400;color:var(--sub);margin-left:8px}
+@media (max-width:720px){.phonehint{display:block;margin:4px 0 0;font-size:calc(12px*var(--fs,1))}}

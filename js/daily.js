@@ -24,7 +24,7 @@
       return;
     }
     const body = h('div', {}, h('p', { class: 'meta' }, '載入中…'));
-    mount(...shell('daily', h('h2', {}, '日帳明細'), L.picker(sel, render), body));
+    mount(...shell('daily', h('h2', {}, '日帳明細', h('span', { class: 'phonehint' }, '手機直立：只顯示業績　｜　手機橫放：顯示業績、來客、指定')), L.picker(sel, render), body));
     try {
       const rg = L.monthRange(sel.y, sel.m);
       const [data, notes, sch, mk] = await Promise.all([L.loadMonth(sel.store, sel.y, sel.m), loadNotes(), L.loadSchedule(sel.store, sel.y, sel.m).catch(() => null),
