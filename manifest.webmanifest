@@ -1,0 +1,12 @@
+{
+  "name": "五眾店務管理",
+  "short_name": "五眾店務",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#12507a",
+  "theme_color": "#12507a",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
