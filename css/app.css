@@ -266,3 +266,11 @@ details.recon>summary{font-weight:700;color:#12507a;font-size:17px}
   .grid{grid-template-columns:1fr 1fr;gap:8px}
 }
 @media (max-width:420px){.grid{grid-template-columns:1fr}}
+@media (max-width:720px){
+  th,td{padding:6px 7px}
+  .sheet td.stk,.sheet th.stk{font-size:12px;padding:6px 5px;min-width:64px;box-shadow:2px 0 3px rgba(0,0,0,.08)}
+  .sheet td.holc{font-size:11px;white-space:normal;min-width:48px;max-width:70px;line-height:1.2}
+  .sheet select.cs{width:84px;min-width:0;padding:6px 4px;font-size:14px}
+  .tw{-webkit-overflow-scrolling:touch}
+  .main table{font-size:calc(13px*var(--fs,1))}
+}
