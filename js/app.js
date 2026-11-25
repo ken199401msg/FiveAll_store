@@ -147,7 +147,7 @@
   const canEdit = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager' || (p.role === 'accountant' && (!!p.can_edit || !!p.can_high))); };
   const canEditCal = () => { const p = state.profile; return !!p && (p.role === 'admin' || p.role === 'manager' || (p.role === 'accountant' && !!p.can_high)); }; // 行事曆：一般帳務不可修改
   const canOpen = (k) => !(state.profile.role === 'accountant' && !(ACCT_PAGES.includes(k) || (k === 'analysis' && (state.profile.can_analysis || state.profile.can_high)) || (k === 'petty' && (state.profile.can_petty || state.profile.can_high)) || (k === 'schedule' && state.profile.can_high)));
-  const VER = 60;
+  const VER = 61;
   /* 資料更新時間：最新一筆日報的日期與寫入時間 */
   function updateBadge() {
     const el = h('div', { class: 'upd' }, '資料更新時間：讀取中…');
@@ -172,12 +172,15 @@
     return [
       h('div', { class: 'topbar' },
         h('div', { class: 't' }, '五眾店務管理', h('span', { class: 'tstore' }, p.role === 'admin' && curView() === 'self' ? '全部店別' : (state.stores.length ? state.stores.join('＋') : '未指定店別'))),
+        h('button', { class: 'tgl', title: '選項', onclick: (e) => { const t = e.target.closest('.topbar'); t.classList.toggle('open'); } }, '☰'),
+        h('div', { class: 'tools' },
         h('div', { class: 'who' }, p.display_name, h('span', { class: 'badge ' + p.role }, ROLE[p.role])),
         state.real && state.real.profile.role === 'admin' ? h('select', { class: 'vsel', title: '切換檢視身分', onchange: (e) => setView(e.target.value) },
           h('optgroup', { label: '本人' }, h('option', { value: 'self', selected: curView() === 'self' }, '視角：本人（超級管理員）')),
           h('optgroup', { label: '角色預設' }, Object.entries(VIEWS).filter(([k]) => k !== 'self' && k.indexOf('u:') !== 0).map(([k, v]) => h('option', { value: k, selected: k === curView() }, '視角：' + v[0]))),
           Object.keys(VIEWS).some((k) => k.indexOf('u:') === 0) ? h('optgroup', { label: '實際帳號' }, Object.entries(VIEWS).filter(([k]) => k.indexOf('u:') === 0).map(([k, v]) => h('option', { value: k, selected: k === curView() }, '視角：' + v[0]))) : null) : null,
-        h('button', { class: 'small fsb', title: '縮小字體', onclick: () => bump(-0.1) }, 'A−'), h('button', { class: 'small fsb', title: '字體預設大小', onclick: () => { fs = 1; applyFs(); } }, '預設'), h('button', { class: 'small fsb', title: '放大字體', onclick: () => bump(0.1) }, 'A＋'), h('a', { class: 'small pwl', href: '#password' }, '改密碼'), h('button', { class: 'small', onclick: signOut }, '登出')),
+        h('button', { class: 'small fsb', title: '縮小字體', onclick: () => bump(-0.1) }, 'A−'), h('button', { class: 'small fsb', title: '字體預設大小', onclick: () => { fs = 1; applyFs(); } }, '預設'), h('button', { class: 'small fsb', title: '放大字體', onclick: () => bump(0.1) }, 'A＋'), h('a', { class: 'small pwl', href: '#password' }, '改密碼'), h('button', { class: 'small', onclick: signOut }, '登出')
+        )),
       updateBadge(),
       h('div', { class: 'nav' }, items.map(([k, label]) =>
         h('a', { href: '#' + k, class: k === active ? 'on' : '' }, label))),

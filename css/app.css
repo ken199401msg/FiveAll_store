@@ -216,7 +216,7 @@ details.recon>summary{font-weight:700;color:#12507a;font-size:17px}
 .topbar{flex-wrap:wrap;row-gap:8px}
 .topbar .t{white-space:nowrap}
 .topbar .who,.topbar button,.topbar a,.topbar .badge{white-space:nowrap}
-@media (max-width:720px){.topbar .t{flex-basis:100%}.topbar .who{flex:1 1 auto;text-align:left}}
+
 
 /* 已對帳 紅色圓章 */
 .stamp{display:none}
@@ -232,3 +232,37 @@ details.recon>summary{font-weight:700;color:#12507a;font-size:17px}
 .exporting .calt td.nm.sm{font-size:18px}
 .exporting .calt td.nm div{white-space:nowrap}
 .sheet .calt td.nm.wk{height:1.8em}
+
+/* ===== 響應式：手機／平板／電腦 ===== */
+.topbar .tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;flex:1 1 auto;justify-content:flex-end}
+.topbar .tgl{display:none;padding:6px 12px;font-size:18px;line-height:1}
+.nav{position:sticky;top:0;z-index:4}
+.topbar{position:static}
+@media (min-width:1100px){
+  .main{max-width:1280px;padding:20px 24px}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+  .topbar,.upd{padding-left:max(16px,calc((100% - 1280px)/2 + 24px));padding-right:max(16px,calc((100% - 1280px)/2 + 24px))}
+}
+@media (min-width:721px) and (max-width:1099px){
+  .main{max-width:960px}
+}
+@media (max-width:720px){
+  .topbar{flex-wrap:wrap;gap:8px;padding:8px 12px}
+  .topbar .t{flex:1 1 auto;font-size:17px}
+  .topbar .tgl{display:inline-block}
+  .topbar .tools{display:none;flex-basis:100%;justify-content:flex-start;gap:8px}
+  .topbar.open .tools{display:flex}
+  .topbar .who{flex-basis:100%;text-align:left}
+  .topbar .vsel{max-width:100%;flex:1 1 100%}
+  .upd{padding:2px 12px 0;text-align:left;font-size:11px}
+  .nav{padding:8px 8px}
+  .nav a{padding:8px 12px;font-size:15px}
+  .main{padding:10px}
+  .card{padding:14px}
+  .vbar{margin:6px 10px 0}
+  button,select,input[type=date],input[type=text],input[type=number]{min-height:40px}
+  .bar{gap:8px}
+  .tile{padding:12px}
+  .grid{grid-template-columns:1fr 1fr;gap:8px}
+}
+@media (max-width:420px){.grid{grid-template-columns:1fr}}
