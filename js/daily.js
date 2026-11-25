@@ -24,7 +24,7 @@
       return;
     }
     const body = h('div', {}, h('p', { class: 'meta' }, '載入中…'));
-    mount(...shell('daily', h('h2', {}, '日帳明細', h('span', { class: 'phonehint' }, '手機直立：只顯示業績　｜　手機橫放：顯示業績、來客、指定')), L.picker(sel, render), body));
+    mount(...shell('daily', h('h2', {}, '日帳明細'), L.picker(sel, render), body));
     try {
       const rg = L.monthRange(sel.y, sel.m);
       const [data, notes, sch, mk] = await Promise.all([L.loadMonth(sel.store, sel.y, sel.m), loadNotes(), L.loadSchedule(sel.store, sel.y, sel.m).catch(() => null),
@@ -108,7 +108,7 @@
     const table = h('div', { class: 'tw' }, h('table', {}, h('thead', {}, head1, head2), h('tbody', {}, rows), h('tfoot', {}, foot)));
 
     const notesHost = h('div');
-    const sheet = h('div', { class: 'sheet' }, h('h3', {}, title), table, h('h3', { style: 'margin-top:14px' }, '記事'), notesHost);
+    const sheet = h('div', { class: 'sheet' }, h('h3', {}, title, h('span', { class: 'phonehint noexp' }, '直立：只顯示業績／橫放：業績、來客、指定')), table, h('h3', { style: 'margin-top:14px' }, '記事'), notesHost);
     const paint = (list) => notesHost.replaceChildren(...noteList(list, refresh));
     async function refresh() {
       try { paint(await loadNotes()); } catch (e) { notesHost.replaceChildren(h('div', { class: 'msg err' }, e.message)); }
